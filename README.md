@@ -16,7 +16,11 @@ OpenRouter 默认会在同一模型的多个供应商之间自己挑、自己回
 
 要求 DSH 0.2.x（在 0.2.2-rc.3 上验证）。
 
-1. 打开 **设置 → 插件**，选择 **添加插件**（Add plugin），选中本目录。
+```bash
+git clone https://gitee.com/creekmoon/dsh-openrouter-provider-router.git
+```
+
+1. 打开 **设置 → 插件**，选择 **添加插件**（Add plugin），选中克隆下来的目录。
 2. 重新打开设置，左侧导航出现 **供应商路由器**。
 
 也可以由 agent 用 `plugin_manager` 安装：`action: install_bundle`，`target` 填本目录的绝对路径。
@@ -100,11 +104,12 @@ node test/verify-catalog.mjs   # 可选：联网核对真实接口与页面解�
 | `design/wireframe.html` | 灰阶结构线框 |
 | `test/` | 离线检查与联网核对 |
 
-## 发布
+## 发布（维护者）
+
+远端是 `https://gitee.com/creekmoon/dsh-openrouter-provider-router.git`，日常直接：
 
 ```bash
-git remote add origin <你的仓库地址>
-git push -u origin main
+git push
 ```
 
 包名目前是 `@creekmoon/dsh-openrouter-provider`（`private: true`，防止误发 npm）。要发到 npm 或改名成自己的域，改 `package.json` 的 `name` 与 `private`，并同步 `cordis.patch.yml` 里的 `name`。

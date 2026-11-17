@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "DSH-OpenRouter-供应商路由器",
+    "description": "把 OpenRouter 请求固定到你指定的供应商。打开 设置 → DSH-OpenRouter-供应商路由器，填或挑供应商后保存，之后每次匹配的请求都会带上 provider.only 与 allow_fallbacks，OpenRouter 不再自行更换供应商。只作用于本 Harness 发往 openrouter.ai 的请求；清除指定即恢复自动路由。"
+  }
+}

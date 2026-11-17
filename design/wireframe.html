@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSH-OpenRouter-供应商路由器 · 结构线框（灰阶）</title>
+<style>
+  /* 灰阶线框：只表达结构、层级与状态，不做视觉决策 */
+  :root { --line:#c9ccd1; --line-strong:#8b9096; --ink:#1b1d20; --ink-2:#4a4f55; --ink-3:#7a7f86; --bg:#f4f5f6; --paper:#ffffff; --fill:#eceef0; --fill-2:#e2e5e8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; }
+  .wrap { max-width:1180px; margin:0 auto; padding:24px 16px 140px; }
+  .meta { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:baseline; margin-bottom:16px; color:var(--ink-2); font-size:13px; }
+  .meta b { color:var(--ink); font-weight:600; }
+  /* 面板：模拟 DSH 设置面板（188px 导航 + 内容列 564px） */
+  .panel { display:grid; grid-template-columns:188px minmax(0,1fr); background:var(--paper); border:1px solid var(--line); border-radius:12px; overflow:hidden; min-height:640px; }
+  .nav { border-right:1px solid var(--line); padding:16px 12px; background:#fbfbfc; }
+  .nav-title { font-size:13px; color:var(--ink-3); padding:4px 8px 10px; }
+  .nav-item { display:block; width:100%; text-align:left; padding:9px 12px; border:1px solid transparent; border-radius:8px; background:none; color:var(--ink-2); font:inherit; cursor:default; }
+  .nav-item.active { background:var(--fill); border-color:var(--line); color:var(--ink); font-weight:600; }
+  .content { display:flex; flex-direction:column; min-width:0; }
+  .head { padding:20px 24px 12px; border-bottom:1px solid var(--line); }
+  .head h1 { margin:0 0 4px; font-size:16px; font-weight:600; }
+  .head p { margin:0; font-size:12px; color:var(--ink-3); }
+  .scroll { flex:1; overflow:auto; padding:16px 24px 24px; }
+  /* 对象条 */
+  .objectbar { display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border:1px solid var(--line-strong); border-radius:10px; background:#fcfcfd; }
+  .objectbar .obmain { flex:1; min-width:0; }
+  .obline1 { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-weight:600; }
+  .obline2 { margin-top:2px; font-size:12px; color:var(--ink-2); font-family:ui-monospace, Consolas, monospace; word-break:break-all; }
+  .obline3 { margin-top:4px; font-size:12px; color:var(--ink-3); }
+  .tag { display:inline-block; padding:0 8px; border:1px solid var(--line-strong); border-radius:999px; font-size:12px; line-height:18px; color:var(--ink-2); font-weight:400; }
+  /* 通用 */
+  .section { margin-top:16px; }
+  .btn { display:inline-flex; align-items:center; gap:6px; min-height:32px; padding:0 12px; border:1px solid var(--line-strong); border-radius:8px; background:var(--paper); color:var(--ink); font:inherit; cursor:pointer; }
+  .btn:hover { background:var(--fill); }
+  .btn.primary { background:var(--ink); color:#fff; border-color:var(--ink); font-weight:600; min-height:40px; padding:0 18px; }
+  .btn.ghost { border-color:transparent; background:none; color:var(--ink-2); min-height:28px; padding:0 6px; }
+  .btn.ghost:hover { background:var(--fill); }
+  .btn.danger { border-color:var(--line-strong); color:var(--ink); }
+  .btn:disabled { color:var(--ink-3); cursor:not-allowed; }
+  .field { width:100%; min-height:38px; padding:0 12px; border:1px solid var(--line-strong); border-radius:8px; background:var(--paper); font:inherit; color:var(--ink); }
+  .hint { margin:6px 0 0; font-size:12px; color:var(--ink-3); }
+  .hint strong { color:var(--ink-2); font-weight:600; }
+  .spacer { flex:1; }
+  /* 工作面：左主线 + 右侧栏 */
+  .work { display:grid; grid-template-columns:minmax(0,1fr) 240px; gap:24px; align-items:start; margin-top:16px; }
+  .main-col { min-width:0; }
+  .main-head { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .main-head h2 { margin:0; font-size:14px; font-weight:600; }
+  .count { font-size:12px; color:var(--ink-3); }
+  .subhead { display:flex; align-items:baseline; gap:8px; margin:16px 0 8px; }
+  .subhead .label { font-size:13px; font-weight:600; }
+  .manual-row { display:flex; gap:8px; margin-top:8px; }
+  /* 已指定：名称与价格同排，规格在副行 */
+  .pins { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--paper); }
+  .pin { display:grid; grid-template-columns:24px minmax(0,1fr); gap:8px; align-items:start; padding:12px 12px 12px 8px; border-bottom:1px solid var(--line); }
+  .pin:last-child { border-bottom:none; }
+  .pin .remove { width:24px; height:24px; border:none; border-radius:999px; background:none; color:var(--ink-3); font:inherit; cursor:pointer; }
+  .pin .remove:hover { background:var(--fill); color:var(--ink); }
+  .pin-top { display:flex; align-items:baseline; gap:8px; }
+  .pin-name { flex:1; min-width:0; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pin-price { font-size:12px; font-family:ui-monospace, Consolas, monospace; white-space:nowrap; }
+  .pin-meta { margin-top:2px; font-size:11px; line-height:17px; color:var(--ink-3); font-family:ui-monospace, Consolas, monospace; word-break:break-word; }
+  .pin-warn { margin:4px 0 0; font-size:11px; color:var(--ink-2); }
+  .pin-warn::before { content:"⚠ "; }
+  .empty { border:1px solid var(--line); border-radius:10px; padding:16px; background:#fcfcfd; }
+  .empty .t { font-size:13px; font-weight:600; }
+  .empty .d { margin-top:2px; font-size:12px; color:var(--ink-3); }
+  /* 侧栏 */
+  .rail { border:1px solid var(--line); border-radius:10px; padding:12px; background:#fcfcfd; }
+  .rail-head { display:flex; align-items:baseline; gap:8px; margin-bottom:8px; }
+  .rail-head h2 { margin:0; font-size:13px; font-weight:600; }
+  .rail .field { min-height:30px; font-size:12px; padding:0 8px; }
+  .rail-list { margin:8px -4px 0; max-height:260px; overflow:auto; }
+  .rail-row { display:grid; grid-template-columns:14px minmax(0,1fr); gap:8px; align-items:start; padding:8px 4px; border-radius:8px; cursor:pointer; }
+  .rail-row:hover { background:var(--fill); }
+  .rail-row[data-checked="true"] { background:var(--fill-2); }
+  .rail-row input { width:14px; height:14px; margin:4px 0 0; }
+  .rail-top { display:flex; align-items:baseline; gap:8px; }
+  .rail-name { flex:1; min-width:0; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rail-price { font-size:11px; font-family:ui-monospace, Consolas, monospace; color:var(--ink-3); white-space:nowrap; }
+  .rail-meta { font-size:11px; line-height:16px; color:var(--ink-3); font-family:ui-monospace, Consolas, monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rail-state { padding:16px 8px; text-align:center; color:var(--ink-3); font-size:12px; }
+  .rail-state .t { color:var(--ink); font-weight:600; font-size:13px; }
+  .rail-skeleton { display:flex; flex-direction:column; gap:12px; padding:8px 4px; }
+  .bar { height:8px; border-radius:4px; background:var(--fill-2); }
+  /* 辅助信息 */
+  .subpanel { border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .subpanel > summary { padding:10px 14px; cursor:pointer; font-weight:600; font-size:14px; list-style:none; display:flex; align-items:center; gap:8px; background:var(--paper); }
+  .subpanel > summary::-webkit-details-marker { display:none; }
+  .subpanel > summary::before { content:"▸"; color:var(--ink-3); font-size:12px; }
+  .subpanel[open] > summary::before { content:"▾"; }
+  .saved-row { display:grid; grid-template-columns:minmax(0,1fr) 88px 88px 72px; gap:8px; align-items:center; padding:8px 14px; border-top:1px solid var(--line); font-size:13px; }
+  .saved-row .model { font-family:ui-monospace, Consolas, monospace; font-size:12px; word-break:break-all; }
+  .fileline { padding:0 14px 12px; font-size:12px; color:var(--ink-3); font-family:ui-monospace, Consolas, monospace; word-break:break-all; }
+  /* 吸底操作条 */
+  .actionbar { position:sticky; bottom:0; display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:12px 24px; border-top:1px solid var(--line-strong); background:var(--paper); }
+  .actionbar .notice { font-size:12px; color:var(--ink-2); max-width:520px; }
+  .actionbar .notice[data-kind="error"] { border-left:3px solid var(--ink); padding-left:8px; }
+  .actionbar .notice[data-kind="warn"] { border-left:3px solid var(--line-strong); padding-left:8px; }
+  .seg { display:inline-flex; border:1px solid var(--line-strong); border-radius:8px; overflow:hidden; }
+  .seg button { min-height:32px; padding:0 10px; border:none; background:var(--paper); font:inherit; font-size:13px; color:var(--ink-2); cursor:pointer; }
+  .seg button.on { background:var(--fill); color:var(--ink); font-weight:600; }
+  .switch { display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-2); }
+  .switch .track { width:36px; height:20px; border:1px solid var(--line-strong); border-radius:999px; position:relative; background:var(--paper); }
+  .switch .track .thumb { position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:999px; background:var(--line-strong); }
+  .switch[aria-checked="true"] .track { background:var(--ink); border-color:var(--ink); }
+  .switch[aria-checked="true"] .track .thumb { left:18px; background:#fff; }
+  /* 开发用状态切换（线框专用） */
+  .dev { position:fixed; right:16px; bottom:16px; width:250px; border:1px solid var(--line-strong); border-radius:10px; background:#fff; padding:10px 12px; font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.08); }
+  .dev h3 { margin:0 0 8px; font-size:12px; }
+  .dev label { display:block; margin:6px 0 2px; color:var(--ink-3); }
+  .dev select { width:100%; min-height:30px; border:1px solid var(--line-strong); border-radius:6px; font:inherit; background:#fff; }
+  .hidden { display:none !important; }
+  @media (max-width: 860px) {
+    .panel { grid-template-columns:1fr; }
+    .nav { display:none; }
+    .work { grid-template-columns:minmax(0,1fr); gap:16px; }
+    .dev { display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="meta">
+    <span><b>结构线框（灰阶）</b>：DSH-OpenRouter-供应商路由器</span>
+    <span>轨道：产品界面 / 页面形态：表单页 + 对象摘要</span>
+    <span>骨架：双栏 = 左主线（手填 + 已指定）+ 右侧栏（在线挑选），吸底操作条</span>
+    <span>564px 内容列 → 主线 300 + 间距 24 + 侧栏 240</span>
+  </div>
+
+  <div class="panel">
+    <nav class="nav" aria-label="设置导航">
+      <div class="nav-title">设置</div>
+      <button class="nav-item" type="button">账户</button>
+      <button class="nav-item" type="button">通用设置</button>
+      <button class="nav-item" type="button">模型</button>
+      <button class="nav-item" type="button">插件</button>
+      <button class="nav-item" type="button">Agent presets</button>
+      <button class="nav-item" type="button">IM</button>
+      <button class="nav-item active" type="button">供应商路由器</button>
+    </nav>
+
+    <main class="content">
+      <header class="head">
+        <h1>DSH-OpenRouter-供应商路由器</h1>
+        <p>为某个模型指定请求交给哪些供应商；保存后该模型的请求只会发给它们，除非你允许回退。</p>
+      </header>
+
+      <div class="scroll">
+        <!-- ① 对象条：当前编辑对象 -->
+        <section class="objectbar" aria-label="当前模型">
+          <div class="obmain">
+            <div class="obline1">
+              <span id="ob-name">DeepSeek V4.1 Flash 1017</span>
+              <span id="ob-badge" class="tag hidden">Latest 别名</span>
+              <span id="ob-badge-router" class="tag hidden">路由模型</span>
+            </div>
+            <div class="obline2" id="ob-id">deepseek/deepseek-v4.1-flash-1017</div>
+            <div class="obline3" id="ob-specs">上下文 1,048,576 · 最大输出 384,000 · 输入 text, image · 50 家供应商</div>
+          </div>
+          <button class="btn" type="button">更换模型</button>
+        </section>
+
+        <!-- ② 工作面：主线（手填 + 已指定）与右侧栏（在线挑选） -->
+        <div class="work">
+          <section class="main-col" aria-label="供应商指定">
+            <div class="main-head">
+              <h2>供应商指定</h2>
+              <span class="count" id="pin-count">已选 1 / 共 8 家</span>
+              <span class="spacer"></span>
+              <button class="btn ghost" type="button">清空</button>
+            </div>
+
+            <!-- 主线第一步：手填 slug，可在任何清单状态下使用 -->
+            <p class="hint" style="margin:8px 0 0; font-size:12px; color:var(--ink-2)">供应商 slug</p>
+            <div class="manual-row">
+              <input class="field" type="text" placeholder="stepfun/fp8" aria-label="供应商 slug">
+              <button class="btn" type="button">添加</button>
+            </div>
+            <p class="hint">可一次填多个，用逗号、空格或换行分隔；slug 就是 OpenRouter 供应商的 tag（例如 stepfun/fp8）。</p>
+
+            <div class="subhead">
+              <span class="label">已指定</span>
+              <span class="count" id="pin-num">1</span>
+            </div>
+            <div class="pins" id="pins"></div>
+            <div class="empty hidden" id="pins-empty">
+              <div class="t">还没有指定供应商</div>
+              <div class="d">在上面手填 slug 后按 Enter 或点「添加」；也可以从右侧在线挑选。</div>
+            </div>
+          </section>
+
+          <aside class="rail" aria-label="在线挑选">
+            <div class="rail-head">
+              <h2>在线挑选</h2>
+              <span class="count" id="rail-count">8 家</span>
+            </div>
+            <input class="field" type="search" placeholder="筛选名称或 slug" aria-label="筛选供应商">
+            <p class="hint" style="margin:6px 0 0">单价 $/1M · 输入 / 输出</p>
+
+            <div id="rail-ready">
+              <div class="rail-list" id="rail-rows"></div>
+            </div>
+
+            <div id="rail-loading" class="rail-skeleton hidden">
+              <span class="bar" style="width:92%"></span>
+              <span class="bar" style="width:78%"></span>
+              <span class="bar" style="width:86%"></span>
+              <span class="bar" style="width:70%"></span>
+              <p class="hint" style="margin:0">正在读取供应商清单…</p>
+            </div>
+
+            <div id="rail-error" class="rail-state hidden">
+              <div class="t">供应商清单读取失败</div>
+              <div id="rail-error-text" style="margin-top:4px">接口：目录里没有该模型；模型页：HTTP 404</div>
+              <div class="hint">手填 slug 不受影响。</div>
+              <div style="margin-top:10px"><button class="btn" type="button">重试</button></div>
+            </div>
+
+            <div id="rail-alias" class="rail-state hidden" style="text-align:left">
+              <div class="t">别名/路由模型没有固定供应商</div>
+              <div class="hint" id="alias-text">Latest 别名会把请求转给同家族最新的具体模型，OpenRouter 不提供它的供应商清单。</div>
+              <div style="margin-top:10px"><button class="btn" type="button">选具体模型</button></div>
+            </div>
+
+            <div id="rail-empty" class="rail-state hidden">
+              <div class="t">该模型没有可用供应商</div>
+              <div class="hint">确认模型 id，或换一个具体模型。</div>
+            </div>
+
+            <div id="rail-filtered" class="rail-state hidden">没有匹配的供应商</div>
+            <div id="rail-scopeall" class="rail-state hidden">“所有 OpenRouter 模型”没有按模型的候选清单，直接手填 slug。</div>
+          </aside>
+        </div>
+
+        <!-- ③ 辅助信息 -->
+        <section class="section">
+          <details class="subpanel">
+            <summary>已保存的指定 <span class="count" id="saved-count" style="font-weight:400">3</span></summary>
+            <div class="saved-row"><span class="model">deepseek/deepseek-v4.1-flash-1017</span><span>1 家</span><span>不回退</span><button class="btn ghost" type="button">删除</button></div>
+            <div class="saved-row"><span class="model">~deepseek/deepseek-flash-latest</span><span>2 家</span><span>允许回退</span><button class="btn ghost" type="button">删除</button></div>
+            <div class="saved-row"><span class="model">所有模型（*）</span><span>3 家</span><span>不回退</span><button class="btn ghost" type="button">删除</button></div>
+          </details>
+          <details class="subpanel" style="margin-top:8px">
+            <summary>配置文件位置</summary>
+            <div class="fileline">C:\Users\JY\.dsh\openrouter-provider.json</div>
+          </details>
+        </section>
+      </div>
+
+      <!-- ④ 吸底操作条 -->
+      <div class="actionbar">
+        <span class="switch" role="switch" aria-checked="false" tabindex="0">
+          <span class="track"><span class="thumb"></span></span>允许回退
+        </span>
+        <div class="seg" role="group" aria-label="作用范围">
+          <button type="button" class="on" data-scope="model">仅此模型</button>
+          <button type="button" data-scope="all">所有 OpenRouter 模型</button>
+        </div>
+        <button class="btn danger" type="button">清除该指定</button>
+        <span class="spacer"></span>
+        <span class="notice" id="notice" role="status" aria-live="polite"></span>
+        <button class="btn primary" type="button">保存</button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- 线框专用：状态切换，不属于产品界面 -->
+<div class="dev" aria-label="演示状态切换">
+  <h3>演示状态（线框专用）</h3>
+  <label for="dev-model">模型</label>
+  <select id="dev-model">
+    <option value="concrete">具体模型（清单 8 家）</option>
+    <option value="alias">Latest 别名（~deepseek/...-latest）</option>
+    <option value="router">路由模型（openrouter/auto）</option>
+  </select>
+  <label for="dev-list">右侧栏清单</label>
+  <select id="dev-list">
+    <option value="ready">已加载</option>
+    <option value="loading">加载中</option>
+    <option value="error">读取失败</option>
+    <option value="empty">空结果</option>
+    <option value="filtered">筛选无结果</option>
+  </select>
+  <label for="dev-scope">作用范围</label>
+  <select id="dev-scope">
+    <option value="model">仅此模型</option>
+    <option value="all">所有 OpenRouter 模型</option>
+  </select>
+  <label for="dev-pins">已指定</label>
+  <select id="dev-pins">
+    <option value="one">1 家（清单内）</option>
+    <option value="mixed">2 家（含清单外 slug）</option>
+    <option value="none">0 家（空状态）</option>
+  </select>
+</div>
+
+<script>
+  const MODELS = {
+    concrete: { name: 'DeepSeek V4.1 Flash 1017', id: 'deepseek/deepseek-v4.1-flash-1017', alias: false, router: false, specs: '上下文 1,048,576 · 最大输出 384,000 · 输入 text, image · 8 家供应商' },
+    alias: { name: 'DeepSeek Flash Latest', id: '~deepseek/deepseek-flash-latest', alias: true, router: false, specs: '别名：始终指向 DeepSeek Flash 家族最新具体模型' },
+    router: { name: 'Auto Router', id: 'openrouter/auto', alias: false, router: true, specs: '路由：由 OpenRouter 按请求挑实际模型，无固定供应商' },
+  };
+
+  const PROVIDERS = [
+    { tag: 'wafer/us', name: 'Wafer', quant: 'mxfp4', input: '0.036', output: '0.5', ctx: '1.05M', ctxFull: '1,048,576', max: '943,718', uptime: '100.0%', degraded: false },
+    { tag: 'stepfun/fp8', name: 'StepFun', quant: 'fp8', input: '0.105', output: '0.42', ctx: '1M', ctxFull: '1,000,000', max: '384,000', uptime: '99.8%', degraded: false },
+    { tag: 'sail-research/fp4', name: 'Sail Research', quant: 'fp4', input: '0.04', output: '0.07', ctx: '1.05M', ctxFull: '1,048,576', max: '384,000', uptime: '90.7%', degraded: false },
+    { tag: 'morph/fp8', name: 'Morph', quant: 'fp8', input: '0.059', output: '0.52', ctx: '1.05M', ctxFull: '1,048,576', max: '943,718', uptime: '74.1%', degraded: false },
+    { tag: 'primeintellect', name: 'PrimeIntellect', quant: '未知', input: '0.0437', output: '0.7', ctx: '1.05M', ctxFull: '1,048,576', max: '131,072', uptime: '98.0%', degraded: false },
+    { tag: 'particle-ai/us/flex', name: 'Particle AI', quant: '未知', input: '0.04', output: '0.3', ctx: '1.05M', ctxFull: '1,048,576', max: '131,072', uptime: '100.0%', degraded: false },
+    { tag: 'fireworks/spot', name: 'Fireworks', quant: '未知', input: '0.21', output: '0.84', ctx: '1.05M', ctxFull: '1,048,576', max: '943,718', uptime: '88.7%', degraded: true },
+    { tag: 'together', name: 'Together', quant: '未知', input: '0.3', output: '1.2', ctx: '1.05M', ctxFull: '1,048,576', max: '943,718', uptime: '100.0%', degraded: false },
+  ];
+
+  const state = { model: 'concrete', list: 'ready', scope: 'model', pins: 'one', selected: new Set(['stepfun/fp8']), manual: ['my/custom'] };
+  const $ = (id) => document.getElementById(id);
+  const esc = (text) => String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  function pinOf(tag) {
+    const known = PROVIDERS.find((row) => row.tag === tag);
+    const name = known ? known.name : tag;
+    const meta = known
+      ? `${known.tag} · 精度 ${known.quant} · 上下文 ${known.ctxFull} · 上限 ${known.max} · 可用性 ${known.uptime}${known.degraded ? ' · 状态异常' : ''}`
+      : `${tag} · 清单里没有这个 slug`;
+    const warn = known ? '' : '<p class="pin-warn">该模型的清单里没有它，拼写可能有误；保存后仍会按原样生效。</p>';
+    const price = known ? `$${known.input} / $${known.output}` : '未知';
+    return `<div class="pin"${known ? '' : ' data-unknown="true"'}>
+      <button class="remove" type="button" aria-label="移除 ${esc(tag)}" title="移除">✕</button>
+      <div>
+        <div class="pin-top"><span class="pin-name" title="${esc(name)}">${esc(name)}</span><span class="pin-price">${price}</span></div>
+        <div class="pin-meta" title="${esc(meta)}">${esc(meta)}</div>
+        ${warn}
+      </div>
+    </div>`;
+  }
+
+  function railRow(row) {
+    const checked = state.selected.has(row.tag);
+    const meta = `${row.tag} · 精度 ${row.quant} · 上下文 ${row.ctx}${row.degraded ? ' · 状态异常' : ''}`;
+    return `<label class="rail-row" data-checked="${checked}">
+      <input type="checkbox"${checked ? ' checked' : ''}>
+      <span>
+        <span class="rail-top"><span class="rail-name" title="${esc(row.name)}">${esc(row.name)}</span><span class="rail-price">${row.input} / ${row.output}</span></span>
+        <span class="rail-meta" title="${esc(meta)}">${esc(meta)}</span>
+      </span>
+    </label>`;
+  }
+
+  function render() {
+    const model = MODELS[state.model];
+    $('ob-name').textContent = model.name;
+    $('ob-id').textContent = model.id || '—';
+    $('ob-specs').textContent = model.specs;
+    $('ob-badge').classList.toggle('hidden', !model.alias);
+    $('ob-badge-router').classList.toggle('hidden', !model.router);
+
+    const pins = state.pins === 'none' ? [] : state.pins === 'mixed' ? ['stepfun/fp8', 'my/custom'] : ['stepfun/fp8'];
+    $('pins').innerHTML = pins.map(pinOf).join('');
+    $('pins').classList.toggle('hidden', pins.length === 0);
+    $('pins-empty').classList.toggle('hidden', pins.length > 0);
+    $('pin-num').textContent = String(pins.length);
+    const ready = state.list === 'ready' || state.list === 'filtered';
+    $('pin-count').textContent = ready && state.scope === 'model' ? `已选 ${pins.length} / 共 ${PROVIDERS.length} 家` : `已选 ${pins.length}`;
+
+    for (const id of ['rail-ready', 'rail-loading', 'rail-error', 'rail-alias', 'rail-empty', 'rail-filtered', 'rail-scopeall']) $(id).classList.add('hidden');
+    $('rail-count').textContent = `${PROVIDERS.length} 家`;
+    if (state.scope === 'all') { $('rail-scopeall').classList.remove('hidden'); $('rail-count').textContent = '' }
+    else if (state.list === 'loading') $('rail-loading').classList.remove('hidden');
+    else if (state.list === 'error') $('rail-error').classList.remove('hidden');
+    else if (state.list === 'empty') $('rail-empty').classList.remove('hidden');
+    else if (state.list === 'filtered') $('rail-filtered').classList.remove('hidden');
+    else $('rail-ready').classList.remove('hidden');
+    if (state.list === 'ready' || state.list === 'filtered') {
+      $('rail-rows').innerHTML = PROVIDERS.map(railRow).join('');
+    }
+    if (model.alias || model.router) {
+      for (const id of ['rail-ready', 'rail-loading', 'rail-error', 'rail-empty', 'rail-filtered']) $(id).classList.add('hidden');
+      $('rail-alias').classList.remove('hidden');
+      $('alias-text').textContent = model.alias
+        ? 'Latest 别名会把请求转给同家族最新的具体模型，OpenRouter 不提供它的供应商清单。'
+        : '路由模型由 OpenRouter 现场决定实际模型，因此没有固定供应商清单。';
+    }
+  }
+
+  $('dev-model').addEventListener('change', (event) => { state.model = event.target.value; render() });
+  $('dev-list').addEventListener('change', (event) => { state.list = event.target.value; render() });
+  $('dev-scope').addEventListener('change', (event) => { state.scope = event.target.value; render() });
+  $('dev-pins').addEventListener('change', (event) => { state.pins = event.target.value; render() });
+  render();
+</script>
+</body>
+</html>

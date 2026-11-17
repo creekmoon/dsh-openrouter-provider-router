@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "DSH-OpenRouter-Provider-Router",
+    "description": "Pin OpenRouter requests to the providers you choose. Open Settings → DSH-OpenRouter-Provider-Router, pick the model, add the providers, and save; every matching request then sends provider.only plus allow_fallbacks, so OpenRouter stops switching providers on its own. Applies only to requests this Harness sends to openrouter.ai; clearing the pin restores automatic routing."
+  }
+}

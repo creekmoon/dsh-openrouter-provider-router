@@ -1,0 +1,82 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-17T16:40:00Z"
+  },
+  "title": "供应商路由器 · 设置页重设计",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 800,
+      "h": 800,
+      "title": "指定清单"
+    },
+    "List-empty.dc.html": {
+      "x": 880,
+      "y": 0,
+      "w": 612,
+      "h": 380,
+      "title": "首次进入"
+    },
+    "Picker.dc.html": {
+      "x": 1572,
+      "y": 0,
+      "w": 612,
+      "h": 800,
+      "title": "选择模型"
+    },
+    "Editor.dc.html": {
+      "x": 0,
+      "y": 920,
+      "w": 612,
+      "h": 1170,
+      "title": "指定供应商"
+    },
+    "Editor-alias.dc.html": {
+      "x": 692,
+      "y": 920,
+      "w": 612,
+      "h": 780,
+      "title": "别名模型"
+    },
+    "Narrow.dc.html": {
+      "x": 1384,
+      "y": 920,
+      "w": 390,
+      "h": 1210,
+      "title": "窄宽"
+    },
+    "No-list.dc.html": {
+      "x": 0,
+      "y": 2250,
+      "w": 612,
+      "h": 880,
+      "title": "缺失与通配"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "List-empty.dc.html",
+    "Picker.dc.html",
+    "Editor.dc.html",
+    "Editor-alias.dc.html",
+    "Narrow.dc.html",
+    "No-list.dc.html"
+  ],
+  "notes": {
+    "row-main": {
+      "x": 0,
+      "y": -300,
+      "text": "供应商路由器 · 设置页重设计",
+      "kind": "title1",
+      "maxW": 2184
+    }
+  },
+  "designSystems": []
+}

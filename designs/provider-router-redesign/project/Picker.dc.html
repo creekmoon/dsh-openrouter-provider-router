@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>选择模型</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--canvas)}
+:root{
+  --canvas:#eceef1;--paper:#ffffff;--module:#f5f6f7;--selected:#f5f6f7;--hover:rgba(38,49,72,.06);
+  --line1:rgba(0,0,0,.04);--line2:rgba(0,0,0,.10);--line3:rgba(0,0,0,.12);--line4:rgba(0,0,0,.16);
+  --ink1:#0f1115;--ink2:#61666b;--ink3:#81858c;--ink4:#adb2b8;
+  --primary:#0f1115;--business:#4174e6;--success:#22c55e;--error:#ec1313;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Helvetica Neue',Helvetica,Arial,sans-serif;
+  --code:'SF Mono','JetBrains Mono','Fira Code',Consolas,'Liberation Mono',Menlo,Courier,'PingFang SC','Microsoft YaHei';
+  --panel-shadow:0 0 0 0.5px var(--line4),0 3px 8px 0 rgba(0,0,0,.04),0 0 20px 0 rgba(0,0,0,.05);
+}
+a{color:inherit;text-decoration:none}
+a:hover{color:var(--ink1)}
+input::placeholder{color:var(--ink4)}
+</style>
+</helmet>
+<div style="width:612px;height:800px;box-sizing:border-box;padding:24px;background:var(--paper);border-radius:28px;box-shadow:var(--panel-shadow);font-family:var(--sans);color:var(--ink1)">
+  <div style="display:flex;flex-direction:column;max-width:720px">
+    <a href="Editor.dc.html" style="align-self:flex-start;display:inline-flex;align-items:center;gap:6px;height:18px;font-size:12.5px;line-height:18px;color:var(--ink3)">
+      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2L3 6l4 4"/></svg>
+      指定供应商
+    </a>
+
+    <h1 style="margin:20px 0 0;font-size:20px;line-height:28px;font-weight:500">选择模型</h1>
+    <p style="margin:8px 0 0;font-size:14px;line-height:22px;color:var(--ink2)">约 470 个模型。按 id 或名称搜索，也可以直接粘贴 OpenRouter 模型页地址。</p>
+
+    <input type="search" value="deepseek" aria-label="搜索模型" placeholder="搜索模型 id 或名称" style="width:100%;box-sizing:border-box;height:32px;margin-top:16px;padding:0 10px;border:0.5px solid var(--line4);border-radius:12px;background:var(--paper);font-family:var(--sans);font-size:14px;line-height:22px;color:var(--ink1)">
+
+    <div style="margin-top:12px;border:0.5px solid var(--line4);border-radius:20px;overflow:hidden">
+      <a href="Editor.dc.html" style="display:flex;align-items:center;gap:10px;padding:10px 14px">
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:14px;line-height:22px;font-weight:500">所有 OpenRouter 模型</span>
+            <span style="flex:none;padding:1px 6px;border:0.5px solid var(--line3);border-radius:4px;font-size:11px;line-height:16px;color:var(--ink2)">通配</span>
+          </span>
+          <span style="font-size:12px;line-height:18px;color:var(--ink3)">一条规则覆盖全部模型，不需要候选清单</span>
+        </span>
+      </a>
+
+      <a href="Editor.dc.html" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:0.5px solid var(--line2);background:var(--selected)">
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:14px;line-height:22px;font-weight:500">DeepSeek V4.1 Flash 1017</span>
+            <span style="flex:none;padding:1px 6px;border:0.5px solid var(--business);border-radius:4px;font-size:11px;line-height:16px;color:var(--business)">当前</span>
+            <span style="margin-left:auto;font-family:var(--code);font-size:12px;line-height:18px;color:var(--ink2);font-variant-numeric:tabular-nums">$0.036 / $0.500</span>
+          </span>
+          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--code);font-size:12px;line-height:18px;color:var(--ink3)">deepseek/deepseek-v4.1-flash-1017 · 上下文 1,048,576</span>
+        </span>
+      </a>
+
+      <a href="Editor.dc.html" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:0.5px solid var(--line2)">
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:14px;line-height:22px;font-weight:500">DeepSeek Flash Latest</span>
+            <span style="flex:none;padding:1px 6px;border:0.5px solid var(--line3);border-radius:4px;font-size:11px;line-height:16px;color:var(--ink2)">别名</span>
+            <span style="margin-left:auto;font-size:12px;line-height:18px;color:var(--ink3)">跟随家族最新模型</span>
+          </span>
+          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--code);font-size:12px;line-height:18px;color:var(--ink3)">~deepseek/deepseek-flash-latest</span>
+        </span>
+      </a>
+
+      <a href="Editor.dc.html" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:0.5px solid var(--line2)">
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:14px;line-height:22px;font-weight:500">Kimi K2</span>
+            <span style="margin-left:auto;font-family:var(--code);font-size:12px;line-height:18px;color:var(--ink2);font-variant-numeric:tabular-nums">$0.600 / $2.500</span>
+          </span>
+          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--code);font-size:12px;line-height:18px;color:var(--ink3)">moonshotai/kimi-k2 · 上下文 131,072</span>
+        </span>
+      </a>
+
+      <a href="Editor.dc.html" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:0.5px solid var(--line2)">
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:14px;line-height:22px;font-weight:500">Claude Sonnet 4.5</span>
+            <span style="margin-left:auto;font-family:var(--code);font-size:12px;line-height:18px;color:var(--ink2);font-variant-numeric:tabular-nums">$3.000 / $15.000</span>
+          </span>
+          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--code);font-size:12px;line-height:18px;color:var(--ink3)">anthropic/claude-sonnet-4.5 · 上下文 200,000</span>
+        </span>
+      </a>
+
+      <a href="Editor.dc.html" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:0.5px solid var(--line2)">
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:14px;line-height:22px;font-weight:500">GPT-5 mini</span>
+            <span style="margin-left:auto;font-family:var(--code);font-size:12px;line-height:18px;color:var(--ink2);font-variant-numeric:tabular-nums">$0.250 / $2.000</span>
+          </span>
+          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--code);font-size:12px;line-height:18px;color:var(--ink3)">openai/gpt-5-mini · 上下文 400,000</span>
+        </span>
+      </a>
+
+      <a href="Editor.dc.html" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:0.5px solid var(--line2)">
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:14px;line-height:22px;font-weight:500">Auto Router</span>
+            <span style="flex:none;padding:1px 6px;border:0.5px solid var(--line3);border-radius:4px;font-size:11px;line-height:16px;color:var(--ink2)">路由</span>
+            <span style="margin-left:auto;font-size:12px;line-height:18px;color:var(--ink3)">按请求挑模型</span>
+          </span>
+          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--code);font-size:12px;line-height:18px;color:var(--ink3)">openrouter/auto</span>
+        </span>
+      </a>
+    </div>
+
+    <p style="margin:8px 0 0;font-size:12px;line-height:18px;color:var(--ink3)">匹配 7 个，共 470 个 · 把搜索词写细一点</p>
+
+    <div style="margin-top:20px;display:flex;flex-direction:column;gap:12px">
+      <span style="display:flex;align-items:center;gap:6px;font-size:12px;line-height:18px;font-weight:500;color:var(--ink2)">
+        <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3l4 3-4 3"/></svg>
+        手动输入模型 id
+      </span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="text" value="" aria-label="模型 id" placeholder="deepseek/deepseek-v4.1-flash-1017 或模型页地址" style="flex:1;min-width:0;box-sizing:border-box;height:32px;padding:0 10px;border:0.5px solid var(--line4);border-radius:12px;background:var(--paper);font-family:var(--sans);font-size:14px;line-height:22px;color:var(--ink1)">
+        <button type="button" style="flex:none;height:32px;padding:0 10px;border:0.5px solid var(--line3);border-radius:8px;background:transparent;font-family:var(--sans);font-size:12px;line-height:18px;color:var(--ink1);cursor:pointer">打开</button>
+      </div>
+      <p style="margin:0;font-size:12px;line-height:18px;color:var(--ink3)">支持带 /models/、?endpoint=、#providers 的模型页地址。</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":612,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {}
+  }
+}
+</script>
+</body>
+</html>

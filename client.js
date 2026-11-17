@@ -1,15 +1,15 @@
 /**
  * OpenRouter 供应商路由（浏览器半）
- * 结构：顶部对象条（为哪个模型配置）→ 可选的具体模型面板 → 单张供应商清单（勾选即已选）
- *       → 折叠的已保存指定 → 吸底操作条（回退 / 作用范围 / 清除 / 保存）。
- * 只做结构，视觉沿用宿主主题令牌；不引用 Host 客户端包。
+ * 结构：三视图状态机 —— 清单（已存规则）/ 编辑（草稿）/ 选择模型，切换只改 page.view，
+ *       不新开路由；视觉全部走宿主令牌，尺寸对齐官方设置页（564px 内容列、0.5px 发丝线、r20 卡片）。
  */
 window.__ModuleLoader__.load({
-  id: '@local/dsh-openrouter-provider',
+  // id 必须等于 package.json 的包名：宿主按包名请求浏览器模块，不对上则工厂注册后不挂到该行，插件静默不出现
+  id: '@creekmoon/dsh-openrouter-provider',
   factory(require) {
     const React = require('react')
     const h = React.createElement
-    const { useCallback, useEffect, useMemo, useRef, useState } = React
+    const { useEffect, useMemo, useRef, useState } = React
 
     /** 设置页文案命名空间 */
     const NS = 'openrouter-provider'
@@ -18,372 +18,359 @@ window.__ModuleLoader__.load({
     const RPC_ENDPOINT = 'openrouter-provider'
     /** 通配模型键，与 Host 的 ALL_MODELS 一致 */
     const ALL_MODELS = '*'
-    /** 模型列表一次最多渲染多少行 */
+    /** 模型目录一次最多渲染多少行 */
     const MODEL_LIST_LIMIT = 80
     /** 供应商 slug 形态，与 Host 的 PROVIDER_SLUG 保持一致 */
     const PROVIDER_SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}(?:\/[A-Za-z0-9._-]{1,64}){0,2}$/
 
     const zh = {
       navLabel: '供应商路由器',
-      title: 'DSH-OpenRouter-供应商路由器',
-      subtitle: '为某个模型指定请求交给哪些供应商；保存后该模型的请求只会发给它们，除非你允许回退。',
+      title: '供应商路由器',
+      intro: 'OpenRouter 默认在同一模型的多个供应商之间自动挑选。这里每条指定都会把选择写死。',
 
-      modelUnknown: '未选择模型',
-      changeModel: '更换模型',
-      modelCountSuffix: ' 家供应商',
-      modelInput: '输入',
-      badgeAlias: 'Latest 别名',
-      badgeRouter: '路由模型',
+      loadingRules: '正在读取设置…',
+      addRule: '新建指定',
+      emptyBody: '还没有任何指定。没有指定时，OpenRouter 会自己挑，可能挑到更贵或更慢的那家。',
+      step1: '选一个模型，或者选「所有 OpenRouter 模型」',
+      step2: '勾选要用的供应商，价格、上下文和可用性就在同一行',
+      step3: '保存后立即生效，不需要重启',
+      configLabel: '规则文件',
 
-      pickerFilter: '搜索模型 id 或名称，例如 deepseek',
-      pickerLoading: '正在读取模型目录…',
-      pickerError: '读取模型目录失败：',
-      pickerEmptyList: '没有匹配的模型',
-      pickerTruncated: '匹配较多，仅显示前 80 个，请把搜索词写细一点。',
-      pickerAdvanced: '手动填写模型 id 或粘贴模型页 URL',
-      pickerAdvancedHint: '支持带 /models/、?endpoint=、#providers 的模型页地址。',
-      pickerAdvancedPlaceholder: 'deepseek/deepseek-v4.1-flash-1017 或 https://openrouter.ai/...',
-      load: '加载',
-      collapse: '收起',
+      allModels: '所有 OpenRouter 模型',
+      allModelsMeta: '未单独指定的模型都走这一条',
+      handsTo: '交给',
+      tagWildcard: '通配',
+      tagDefault: '当前默认',
+      tagFallbacks: '允许回退',
+      tagNoFallbacks: '不回退',
+      tagAlias: 'Latest 别名',
+      tagRouter: '路由',
+      tagDegraded: '状态异常',
+      edit: '编辑',
+      remove: '删除',
 
-      providersLabel: '供应商指定',
+      backToList: '供应商路由器',
+      editorTitle: '指定供应商',
+      editorIntro: '勾选要用的供应商；清单按输入价从低到高排。',
+      sectionModel: '模型',
+      sectionProviders: '供应商',
+      sectionBehavior: '规则行为',
+      changeModel: '更换',
+      pickModel: '选择模型',
+      pickModelFirst: '先选择模型，再挑供应商。',
       selectedPrefix: '已选 ',
       ofTotalPrefix: ' / 共 ',
       countSuffix: ' 家',
-      clearSelection: '清空',
-      manualLabel: '供应商 slug',
-      manualPlaceholder: 'stepfun/fp8',
-      manualHint: '可一次填多个，用逗号、空格或换行分隔；slug 就是 OpenRouter 供应商的 tag（例如 stepfun/fp8）。',
-      manualInvalid: '格式不正确：',
+      clear: '清空',
+      servingSuffix: ' 家可服务这个模型',
+      sortInput: '输入价 ↑',
+      tableProvider: '供应商',
+      tableInput: '输入 $',
+      tableOutput: '输出 $',
+      tableUptime: '可用性',
+      manualPlaceholder: '也可以直接填供应商 slug，例如 stepfun/fp8',
       add: '添加',
-      pinnedLabel: '已指定',
-      pinnedEmptyTitle: '还没有指定供应商',
-      pinnedEmptyHint: '在上面手填 slug 后按 Enter 或点「添加」；也可以从右侧在线挑选。',
-      remove: '移除',
-      notInCatalog: '清单里没有这个 slug',
-      notInCatalogHint: '该模型的清单里没有它，拼写可能有误；保存后仍会按原样生效。',
-      colQuant: '精度',
-      colInput: '输入',
-      colOutput: '输出',
-      colContext: '上下文',
-      colMaxOutput: '最大输出',
-      maxOutputShort: '上限',
-      colUptime: '可用性',
-      unknownValue: '未知',
-      degradedTag: '状态异常',
+      manualHint: '可一次填多个，用逗号或空格分隔；清单外的 slug 也能保存，但请求可能被 OpenRouter 拒绝。',
+      manualInvalidPrefix: '格式不正确：',
+      notInCatalog: '清单里没有这些 slug',
+      notInCatalogHint: '拼写可能有误；保存后仍会按原样生效。',
+      allowFallbacks: '允许回退',
+      allowFallbacksDesc: '开启后，名单外的供应商仍可接管失败的请求；关闭后只发给上面这几家，可预测但更容易失败。',
+      atLeastOne: '至少选 1 家供应商才能保存',
 
-      railTitle: '在线挑选',
-      railSortHint: '单价 $/1M · 输入 / 输出',
-      providerFilter: '筛选名称或 slug',
-
-      listIdle: '选定模型后，这里会列出它可用的供应商。',
-      listLoading: '正在读取供应商清单…',
-      listEmptyTitle: '该模型没有可用供应商',
-      listEmptyHint: '确认模型 id 是否正确，或换一个具体模型。',
-      listErrorTitle: '供应商清单读取失败',
-      listErrorHint: '手填 slug 不受影响；也可以粘贴模型页 URL，让页面解析网页里的供应商与价格。',
-      listFilteredEmpty: '没有匹配的供应商',
-      retry: '重试',
-
-      aliasTitle: '别名/路由模型没有固定供应商',
-      aliasTextAlias: 'Latest 别名会把请求转给同家族最新的具体模型，OpenRouter 不提供它的供应商清单。',
-      aliasTextRouter: '路由模型由 OpenRouter 现场决定实际模型，因此没有固定供应商清单。',
-      pickConcrete: '选具体模型',
-      scopeAllHint: '“所有 OpenRouter 模型”没有按模型的候选清单，直接手填 slug。',
-
-      onboardStep1: '① 选定模型',
-      onboardStep2: '② 填供应商 slug 或在线挑选',
-      onboardStep3: '③ 保存',
-
-      fallbacksLabel: '允许回退',
-      scopeLabel: '作用范围',
-      scopeModel: '仅此模型',
-      scopeAll: '所有 OpenRouter 模型',
-      clearPin: '清除该指定',
-      confirmClearPrefix: '清除 ',
-      confirmClearSuffix: ' 的指定？',
-      confirmYes: '确认清除',
-      cancel: '取消',
+      unsaved: '未保存修改',
       save: '保存',
       saving: '保存中…',
-      dirtyNotice: '有未保存的修改',
-
+      cancel: '取消',
+      deleteHint: '删除后，这个模型交回 OpenRouter 自动选择。',
+      deleteRule: '删除这条指定',
+      confirmDelete: '确认删除',
+      deleted: '已删除',
       saved: '已保存',
       savedMismatchPrefix: '已保存，但当前默认模型是 ',
       savedMismatchSuffix: '，与此指定不同，暂时不会生效 —— 改用「所有 OpenRouter 模型」或切换默认模型。',
-      failedPrefix: '保存失败：',
-      removed: '已清除',
-      removeFailedPrefix: '清除失败：',
+      saveFailedPrefix: '保存失败：',
+      deleteFailedPrefix: '删除失败：',
       loadFailedPrefix: '读取设置失败：',
 
-      savedRulesLabel: '已保存的指定',
-      savedRulesEmpty: '还没有任何指定，OpenRouter 按自己的规则自动选择供应商。',
-      savedAll: '所有模型（*）',
-      savedProviderCountSuffix: ' 家',
-      savedFallback: '允许回退',
-      savedNoFallback: '不回退',
-      delete: '删除',
-      configLocation: '配置文件位置',
+      catalogLoading: '正在读取供应商清单…',
+      catalogErrorTitle: '读不到这个模型的供应商清单',
+      catalogErrorHint: '手填的 slug 不受影响，保存后仍按你填的生效。',
+      retry: '重试',
+      aliasTitle: '别名没有固定的供应商清单',
+      aliasText: '别名指向「同家族最新的具体模型」，所以清单随之变动。先选一个具体模型，再为它挑供应商。',
+      routerTitle: '路由模型没有固定的供应商清单',
+      routerText: '路由模型由 OpenRouter 按请求决定实际模型，没有候选清单可挑。',
+      pickConcrete: '改选具体模型',
+      allScopeTitle: '所有模型没有按模型的候选清单',
+      allScopeText: '每个模型能服务的供应商不同，所以这里直接填 slug；填错不会拦住保存，但请求会返回 4xx。',
+      noProviders: '该模型没有可用供应商，确认模型 id 是否正确。',
+
+      pickerTitle: '选择模型',
+      pickerIntro: '按 id 或名称搜索，也可以直接粘贴 OpenRouter 模型页地址。',
+      searchModels: '搜索模型 id 或名称',
+      pickerAllDesc: '一条规则覆盖全部模型，不需要候选清单',
+      modelsLoading: '正在读取模型目录…',
+      modelsErrorPrefix: '读取模型目录失败：',
+      modelsEmpty: '没有匹配的模型',
+      modelsMatchPrefix: '匹配 ',
+      modelsTotalPrefix: '，共 ',
+      modelsCountSuffix: ' 个',
+      modelsTruncated: '匹配较多，仅显示前 80 个，请把搜索词写细一点。',
+      manualModelLabel: '手动输入模型 id',
+      manualModelPlaceholder: 'deepseek/deepseek-v4.1-flash-1017 或模型页地址',
+      load: '打开',
+      manualModelHint: '支持带 /models/、?endpoint=、#providers 的模型页地址。',
+
+      context: '上下文',
+      maxOutput: '最大输出',
+      inputLabel: '输入',
+      precision: '精度',
+      unknownValue: '未知',
     }
 
     const en = {
       navLabel: 'Provider router',
-      title: 'DSH-OpenRouter-Provider-Router',
-      subtitle: 'Choose which providers serve a model; saved requests go only to them unless you allow fallbacks.',
+      title: 'Provider router',
+      intro: 'OpenRouter picks among a model’s providers by itself. Each pin here fixes that choice.',
 
-      modelUnknown: 'No model selected',
-      changeModel: 'Change model',
-      modelCountSuffix: ' providers',
-      modelInput: 'input',
-      badgeAlias: 'Latest alias',
-      badgeRouter: 'router',
+      loadingRules: 'Reading settings…',
+      addRule: 'New pin',
+      emptyBody: 'No pins yet. Without one, OpenRouter chooses the provider itself and may pick a pricier or slower one.',
+      step1: 'Pick a model, or pick “All OpenRouter models”',
+      step2: 'Tick the providers you want; price, context and uptime sit on one row',
+      step3: 'Save; it applies immediately, no restart',
+      configLabel: 'Rules file',
 
-      pickerFilter: 'Search a model id or name, for example deepseek',
-      pickerLoading: 'Loading the model catalog…',
-      pickerError: 'Could not load the model catalog: ',
-      pickerEmptyList: 'No model matches',
-      pickerTruncated: 'Many matches; showing the first 80. Narrow the search.',
-      pickerAdvanced: 'Type a model id or paste a model page URL',
-      pickerAdvancedHint: 'Accepts model page URLs with /models/, ?endpoint=, or #providers.',
-      pickerAdvancedPlaceholder: 'deepseek/deepseek-v4.1-flash-1017 or https://openrouter.ai/...',
-      load: 'Load',
-      collapse: 'Collapse',
+      allModels: 'All OpenRouter models',
+      allModelsMeta: 'Models without their own pin fall back to this one',
+      handsTo: 'to',
+      tagWildcard: 'wildcard',
+      tagDefault: 'current default',
+      tagFallbacks: 'fallbacks on',
+      tagNoFallbacks: 'no fallbacks',
+      tagAlias: 'latest alias',
+      tagRouter: 'router',
+      tagDegraded: 'degraded',
+      edit: 'Edit',
+      remove: 'Delete',
 
-      providersLabel: 'Provider pin',
+      backToList: 'Provider router',
+      editorTitle: 'Pin providers',
+      editorIntro: 'Tick the providers to use; the list is sorted by input price.',
+      sectionModel: 'Model',
+      sectionProviders: 'Providers',
+      sectionBehavior: 'Rule behaviour',
+      changeModel: 'Change',
+      pickModel: 'Pick a model',
+      pickModelFirst: 'Pick a model first, then its providers.',
       selectedPrefix: 'Selected ',
-      ofTotalPrefix: ' / ',
+      ofTotalPrefix: ' of ',
       countSuffix: '',
-      clearSelection: 'Clear',
-      manualLabel: 'Provider slug',
-      manualPlaceholder: 'stepfun/fp8',
-      manualHint: 'Separate several slugs with commas, spaces, or new lines; a slug is the OpenRouter provider tag (for example stepfun/fp8).',
-      manualInvalid: 'Invalid slug: ',
+      clear: 'Clear',
+      servingSuffix: ' providers serve this model',
+      sortInput: 'input ↑',
+      tableProvider: 'Provider',
+      tableInput: 'in $',
+      tableOutput: 'out $',
+      tableUptime: 'uptime',
+      manualPlaceholder: 'Or type a provider slug, for example stepfun/fp8',
       add: 'Add',
-      pinnedLabel: 'Pinned',
-      pinnedEmptyTitle: 'No provider pinned yet',
-      pinnedEmptyHint: 'Type a slug above and press Enter or Add; you can also tick providers in the rail on the right.',
-      remove: 'Remove',
+      manualHint: 'Type several at once, separated by commas or spaces; a slug outside the list still saves, but OpenRouter may reject the request.',
+      manualInvalidPrefix: 'Invalid slug: ',
       notInCatalog: 'not in this model’s list',
-      notInCatalogHint: 'This slug is not in the list for this model, so it may be a typo; it is still saved as typed.',
-      colQuant: 'Precision',
-      colInput: 'in',
-      colOutput: 'out',
-      colContext: 'context',
-      colMaxOutput: 'max output',
-      maxOutputShort: 'max out',
-      colUptime: 'uptime',
-      unknownValue: 'unknown',
-      degradedTag: 'degraded',
+      notInCatalogHint: 'possibly a typo; it is still saved as typed.',
+      allowFallbacks: 'Allow fallbacks',
+      allowFallbacksDesc: 'On, providers outside the list may still take over a failed request; off, only the ones above are used.',
+      atLeastOne: 'Select at least one provider to save',
 
-      railTitle: 'Browse',
-      railSortHint: '$ per 1M · in / out',
-      providerFilter: 'Filter name or slug',
-
-      listIdle: 'Pick a model first; its providers appear here.',
-      listLoading: 'Loading the provider list…',
-      listEmptyTitle: 'No provider serves this model',
-      listEmptyHint: 'Check the model id, or pick a concrete model.',
-      listErrorTitle: 'Could not load the provider list',
-      listErrorHint: 'Typing slugs still works; you can also paste the model page URL so the page is parsed.',
-      listFilteredEmpty: 'No provider matches',
-      retry: 'Retry',
-
-      aliasTitle: 'Alias and router models have no fixed providers',
-      aliasTextAlias: 'A Latest alias redirects to the newest concrete model in its family, so OpenRouter lists no providers for it.',
-      aliasTextRouter: 'A router model picks the real model per request, so it has no fixed provider list.',
-      pickConcrete: 'Pick a concrete model',
-      scopeAllHint: 'All OpenRouter models has no per-model candidate list; type slugs instead.',
-
-      onboardStep1: '① Pick a model',
-      onboardStep2: '② Type a slug or browse',
-      onboardStep3: '③ Save',
-
-      fallbacksLabel: 'Allow fallbacks',
-      scopeLabel: 'Applies to',
-      scopeModel: 'This model only',
-      scopeAll: 'All OpenRouter models',
-      clearPin: 'Remove pin',
-      confirmClearPrefix: 'Remove the pin for ',
-      confirmClearSuffix: '?',
-      confirmYes: 'Remove',
-      cancel: 'Cancel',
+      unsaved: 'Unsaved changes',
       save: 'Save',
       saving: 'Saving…',
-      dirtyNotice: 'Unsaved changes',
-
+      cancel: 'Cancel',
+      deleteHint: 'After deleting, this model goes back to OpenRouter’s own choice.',
+      deleteRule: 'Delete this pin',
+      confirmDelete: 'Delete',
+      deleted: 'Deleted',
       saved: 'Saved',
       savedMismatchPrefix: 'Saved, but the current default model is ',
-      savedMismatchSuffix: ', so this pin does not apply yet — use All OpenRouter models, or switch the default model.',
-      failedPrefix: 'Save failed: ',
-      removed: 'Removed',
-      removeFailedPrefix: 'Remove failed: ',
+      savedMismatchSuffix: ', so this pin does not apply yet — use “All OpenRouter models” or switch the default model.',
+      saveFailedPrefix: 'Save failed: ',
+      deleteFailedPrefix: 'Delete failed: ',
       loadFailedPrefix: 'Could not read the setting: ',
 
-      savedRulesLabel: 'Saved pins',
-      savedRulesEmpty: 'No pins yet; OpenRouter keeps choosing providers itself.',
-      savedAll: 'All models (*)',
-      savedProviderCountSuffix: '',
-      savedFallback: 'fallbacks',
-      savedNoFallback: 'no fallbacks',
-      delete: 'Delete',
-      configLocation: 'Configuration file',
+      catalogLoading: 'Loading the provider list…',
+      catalogErrorTitle: 'Could not load this model’s providers',
+      catalogErrorHint: 'Typed slugs still apply; the saved rule keeps what you typed.',
+      retry: 'Retry',
+      aliasTitle: 'An alias has no fixed provider list',
+      aliasText: 'An alias points at the newest concrete model in its family, so the list moves with it. Pick a concrete model first.',
+      routerTitle: 'A router model has no fixed provider list',
+      routerText: 'A router picks the real model per request, so there is no candidate list.',
+      pickConcrete: 'Pick a concrete model',
+      allScopeTitle: 'All models has no per-model candidate list',
+      allScopeText: 'Each model serves a different set of providers, so type slugs here; a wrong one still saves but returns 4xx.',
+      noProviders: 'No provider serves this model; check the model id.',
+
+      pickerTitle: 'Pick a model',
+      pickerIntro: 'Search by id or name, or paste an OpenRouter model page URL.',
+      searchModels: 'Search a model id or name',
+      pickerAllDesc: 'One rule for every model; no candidate list needed',
+      modelsLoading: 'Loading the model catalog…',
+      modelsErrorPrefix: 'Could not load the catalog: ',
+      modelsEmpty: 'No model matches',
+      modelsMatchPrefix: 'Matched ',
+      modelsTotalPrefix: ' of ',
+      modelsCountSuffix: '',
+      modelsTruncated: 'Many matches; showing the first 80. Narrow the search.',
+      manualModelLabel: 'Type a model id',
+      manualModelPlaceholder: 'deepseek/deepseek-v4.1-flash-1017 or a model page URL',
+      load: 'Open',
+      manualModelHint: 'Accepts model page URLs with /models/, ?endpoint= or #providers.',
+
+      context: 'context',
+      maxOutput: 'max output',
+      inputLabel: 'input',
+      precision: 'precision',
+      unknownValue: 'unknown',
     }
 
     const CSS = `
-/* 深度策略：全页只用 1px 边框 + 表面色阶，不用阴影；圆角只有 12（容器/控件）、8（行/徽章钮）、999（胶囊）三档 */
-.dop { display: flex; flex-direction: column; gap: 16px; width: 100%; box-sizing: border-box; position: relative; font-variant-numeric: tabular-nums; }
-.dop-head { display: flex; flex-direction: column; gap: 4px; }
-.dop-title { margin: 0; font-size: 16px; line-height: 24px; font-weight: 500; color: var(--dsw-alias-label-primary); }
-.dop-sub { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
-.dop-hint { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
-.dop-label { margin: 0; font-size: 12px; line-height: 18px; font-weight: 500; color: var(--dsw-alias-label-secondary); }
-.dop-spacer { flex: 1 1 auto; }
+/* 尺寸取自宿主设置页：区块 16/24 500、导语 14/22、字段标签 12/18 500、输入 32/r12、卡片 0.5px/r20 */
+.dop { container-type: inline-size; display: flex; flex-direction: column; gap: 12px; max-width: 720px; color: var(--dsw-alias-label-primary); font-variant-numeric: tabular-nums; }
+.dop-head { display: flex; flex-direction: column; gap: 12px; }
+.dop-title { margin: 0; font-size: 16px; line-height: 24px; font-weight: 500; }
+.dop-intro { margin: 0; font-size: 14px; line-height: 22px; color: var(--dsw-alias-label-secondary); }
+.dop-status { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
+.dop-status[data-tone='warn'] { color: var(--dsw-alias-state-warn-label); }
+.dop-status[data-tone='error'] { color: var(--dsw-alias-state-error-primary); }
 
-/* 对象条：不加卡片外壳，用一条分隔线收口，避免整页卡片马赛克 */
-.dop-object { display: flex; align-items: flex-start; gap: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--dsw-alias-border-l2); }
-.dop-objectMain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.dop-objectLine { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.dop-objectName { font-size: 14px; line-height: 22px; font-weight: 500; color: var(--dsw-alias-label-primary); }
-.dop-objectId { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); word-break: break-all; }
-.dop-objectSpecs { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
-.dop-tag { display: inline-flex; align-items: center; padding: 0 8px; border-radius: 999px; background: var(--dsw-alias-bg-layer-2); font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); font-weight: 400; }
+.dop-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.dop-card { display: flex; flex-direction: column; gap: 12px; padding: 12px 14px; border: 0.5px solid var(--dsw-alias-border-l4); border-radius: var(--dsw-radius-xl); background: var(--dsw-alias-settings-card-fill); }
+.dop-rowHead { display: flex; align-items: center; gap: 10px; }
+.dop-rowMain { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dop-rowTitle { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.dop-rowName { font-size: 14px; line-height: 22px; font-weight: 500; overflow-wrap: anywhere; }
+.dop-meta { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); }
+.dop-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dop-tag { flex: none; padding: 1px 6px; border: 0.5px solid var(--dsw-alias-border-l3); border-radius: var(--dsw-radius-xs); font-size: 11px; line-height: 16px; color: var(--dsw-alias-label-secondary); }
+.dop-tagAccent { border-color: var(--dsw-alias-state-business-primary); color: var(--dsw-alias-state-business-primary); }
+.dop-tagWarn { border-color: var(--dsw-alias-state-warn-label); color: var(--dsw-alias-state-warn-label); }
+.dop-tagMuted { border-color: transparent; background: var(--dsw-alias-bg-module-platform); color: var(--dsw-alias-label-tertiary); }
+.dop-removable { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 4px 0 7px; border: 0.5px solid var(--dsw-alias-border-l3); border-radius: var(--dsw-radius-xs); font-size: 11px; line-height: 16px; color: var(--dsw-alias-label-secondary); }
+.dop-removableCode { font-family: var(--ds-font-family-code, monospace); }
+.dop-tagButton { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; padding: 0; border: none; border-radius: var(--dsw-radius-xs); background: transparent; color: var(--dsw-alias-label-tertiary); font: inherit; font-size: 11px; line-height: 1; cursor: pointer; transition: background-color 120ms ease, color 120ms ease; }
+.dop-tagButton:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.dop-actions { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
 
-/* 模型选择面板：临时展开的悬浮面，用边框 + 更高一层的表面色 */
-.dop-picker { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px 16px; border: 1px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-md, 12px); background: var(--dsw-alias-settings-card-fill, var(--dsw-alias-bg-layer-1)); }
-.dop-modelList { display: flex; flex-direction: column; max-height: min(280px, 38vh); overflow-y: auto; border-top: 1px solid var(--dsw-alias-border-l2); }
-.dop-modelRow { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 8px; border: none; border-bottom: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; background: none; text-align: left; font: inherit; cursor: pointer; transition: background-color 120ms ease; }
-.dop-modelRow:hover { background: var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-2)); }
-.dop-modelRow:active { background: var(--dsw-alias-bg-module-platform, var(--dsw-alias-bg-layer-2)); }
-.dop-modelRow[data-current='true'] { background: var(--dsw-alias-bg-module-platform, var(--dsw-alias-bg-layer-2)); }
-.dop-modelMain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.dop-modelName { font-size: 14px; line-height: 20px; color: var(--dsw-alias-label-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dop-modelMeta { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dop-advanced { display: flex; flex-direction: column; gap: 8px; }
-.dop-advanced summary { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); cursor: pointer; }
+.dop-compact { display: inline-flex; align-items: center; justify-content: center; height: 28px; padding: 0 10px; border: 0.5px solid var(--dsw-alias-border-l3); border-radius: var(--dsw-radius-sm); background: transparent; font: inherit; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-primary); cursor: pointer; transition: background-color 120ms ease, transform 120ms ease; }
+.dop-compact:hover:not([disabled]) { background: var(--dsw-alias-interactive-bg-hover); }
+.dop-compact:active:not([disabled]) { transform: scale(0.98); }
+.dop-compact[disabled] { opacity: 0.4; cursor: default; }
+.dop-compactDanger { border: none; color: var(--dsw-alias-state-error-primary); }
+.dop-compactDanger:hover:not([disabled]) { background: var(--dsw-alias-interactive-bg-hover-danger); }
 
-/* 控件：36px 档位，左右内边距 16px；可按压元素都要有 :active 物理反馈 */
-.dop-input { flex: 1; min-width: 0; height: 36px; padding: 0 12px; box-sizing: border-box; border: 1px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-md, 12px); background: var(--dsw-alias-bg-base); color: var(--dsw-alias-label-primary); font: inherit; font-size: 14px; line-height: 22px; transition: border-color 120ms ease; }
-.dop-input::placeholder { color: var(--dsw-alias-label-secondary); }
-.dop-input:disabled { opacity: 0.5; cursor: not-allowed; }
-.dop-button { flex: none; height: 36px; padding: 0 16px; border: 1px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-md, 12px); background: var(--dsw-alias-bg-base); color: var(--dsw-alias-label-primary); font: inherit; font-size: 14px; line-height: 22px; cursor: pointer; transition: background-color 120ms ease, transform 120ms ease, opacity 120ms ease; }
-.dop-button:hover:not([disabled]) { background: var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-2)); }
-.dop-button:active:not([disabled]) { transform: scale(0.97); }
-.dop-button[disabled] { opacity: 0.5; cursor: not-allowed; }
-.dop-primary { flex: none; min-width: 96px; height: 40px; padding: 0 20px; border: none; border-radius: var(--dsw-radius-md, 12px); background: var(--dsw-alias-brand-primary); color: var(--dsw-alias-label-primary-foreground, var(--dsw-alias-bg-base)); font: inherit; font-size: 14px; line-height: 22px; font-weight: 500; cursor: pointer; transition: filter 120ms ease, transform 120ms ease, opacity 120ms ease; }
-.dop-primary:hover:not([disabled]) { filter: brightness(0.96); }
-.dop-primary:active:not([disabled]) { transform: scale(0.97); }
-.dop-primary[disabled] { opacity: 0.5; cursor: not-allowed; }
-.dop-primaryDanger { background: var(--dsw-alias-state-error-primary, var(--dsw-alias-brand-primary)); }
-.dop-link { border: none; background: none; padding: 0; font: inherit; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); cursor: pointer; transition: color 120ms ease; }
-.dop-link:hover:not([disabled]) { color: var(--dsw-alias-label-primary); }
-.dop-link[disabled] { opacity: 0.5; cursor: not-allowed; }
-.dop-linkDanger { color: var(--dsw-alias-state-error-primary); }
+.dop-add { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 44px; border: 1px dashed var(--dsw-alias-border-l3); border-radius: var(--dsw-radius-lg); background: transparent; font: inherit; font-size: 14px; line-height: 22px; color: var(--dsw-alias-label-primary); cursor: pointer; transition: background-color 120ms ease, transform 120ms ease; }
+.dop-add:hover:not([disabled]) { background: var(--dsw-alias-interactive-bg-hover); }
+.dop-add:active:not([disabled]) { transform: scale(0.99); }
 
-/* 引导与就地通知：不用虚线框，浅底 + 圆角即可 */
-.dop-checklist { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
-.dop-checklist span[data-done='true'] { color: var(--dsw-alias-state-success-primary); }
-.dop-bannerTitle { font-size: 13px; line-height: 20px; font-weight: 500; color: var(--dsw-alias-label-primary); }
-.dop-alert { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-state-error-primary); }
+.dop-empty { padding: 12px; border: 1px dashed var(--dsw-alias-border-l3); border-radius: var(--dsw-radius-lg); text-align: center; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary); }
+.dop-steps { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.dop-step { display: flex; align-items: baseline; gap: 8px; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); }
+.dop-stepNum { font-family: var(--ds-font-family-code, monospace); font-variant-numeric: tabular-nums; }
 
-/* 工作面：左侧主线（手填 + 已指定），右侧栏（在线挑选）。列宽按设置面板真实内容宽约 560px 定 */
-.dop-region { container-type: inline-size; }
-.dop-work { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 24px; align-items: start; }
-.dop-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.dop-blockTitle { margin: 0; font-size: 14px; line-height: 22px; font-weight: 500; color: var(--dsw-alias-label-primary); }
+.dop-crumb { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 18px; padding: 0; border: none; background: none; color: var(--dsw-alias-label-tertiary); font: inherit; font-size: 12.5px; line-height: 18px; cursor: pointer; }
+.dop-crumb:hover { color: var(--dsw-alias-label-primary); }
+.dop-pageTitle { margin: 20px 0 0; font-size: 20px; line-height: 28px; font-weight: 500; }
+.dop-pageIntro { margin: 8px 0 0; font-size: 14px; line-height: 22px; color: var(--dsw-alias-label-secondary); }
+
+.dop-section { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+.dop-sectionHead { display: flex; align-items: baseline; gap: 10px; }
+.dop-sectionTitle { margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; }
 .dop-count { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
-.dop-mainHead { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.dop-field { display: flex; flex-direction: column; gap: 8px; }
-.dop-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.dop-picker .dop-input { height: 32px; font-size: 13px; }
-.dop-picker .dop-button { height: 32px; padding: 0 12px; font-size: 13px; }
-.dop-manualRow { display: flex; align-items: center; gap: 8px; }
-.dop-manualRow .dop-input { flex: 1; min-width: 0; }
-.dop-subhead { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; }
-.dop-subhead .dop-label { font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-primary); }
-.dop-stack { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 
-/* 已指定供应商：名称与价格同排，精度/上下文/上限并入副行（主线窄，开不了多列） */
-.dop-pins { display: flex; flex-direction: column; border: 1px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-md, 12px); background: var(--dsw-alias-settings-card-fill, var(--dsw-alias-bg-layer-1)); overflow: hidden; }
-.dop-pin { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px; align-items: start; padding: 12px 12px 12px 8px; border-bottom: 1px solid var(--dsw-alias-border-l2); }
-.dop-pin:last-child { border-bottom: none; }
-.dop-pinRemove { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: none; border-radius: 999px; background: none; color: var(--dsw-alias-label-secondary); font: inherit; font-size: 12px; line-height: 1; cursor: pointer; transition: background-color 120ms ease, color 120ms ease, transform 120ms ease; }
-.dop-pinRemove:hover:not([disabled]) { background: var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-2)); color: var(--dsw-alias-label-primary); }
-.dop-pinRemove:active:not([disabled]) { transform: scale(0.92); }
-.dop-pinRemove[disabled] { opacity: 0.5; cursor: not-allowed; }
-.dop-pinMain { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.dop-pinTop { display: flex; align-items: baseline; gap: 8px; }
-.dop-pinName { flex: 1; min-width: 0; font-size: 14px; line-height: 20px; color: var(--dsw-alias-label-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dop-pinPrice { flex: none; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 20px; color: var(--dsw-alias-label-primary); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.dop-pinMeta { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; line-height: 17px; color: var(--dsw-alias-label-secondary); word-break: break-word; }
-.dop-pinWarn { color: var(--dsw-alias-state-warn-primary); font-size: 11px; line-height: 17px; }
-.dop-empty { display: flex; flex-direction: column; gap: 4px; padding: 16px; border: 1px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-md, 12px); background: var(--dsw-alias-settings-card-fill, var(--dsw-alias-bg-layer-1)); }
+.dop-field { display: flex; flex-direction: column; gap: 6px; }
+.dop-label { font-size: 12px; line-height: 18px; font-weight: 500; color: var(--dsw-alias-label-secondary); }
+.dop-hint { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); }
+.dop-input { box-sizing: border-box; width: 100%; height: 32px; padding: 0 10px; border: 0.5px solid var(--dsw-alias-border-l4); border-radius: var(--dsw-radius-md); background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); font: inherit; font-size: 14px; line-height: 22px; }
+.dop-input::placeholder { color: var(--dsw-alias-label-caption); }
+.dop-input:focus { outline: none; border-color: var(--dsw-alias-state-business-primary); }
+.dop-code { font-family: var(--ds-font-family-code, monospace); font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); overflow-wrap: anywhere; }
+.dop-inline { display: flex; align-items: center; gap: 8px; }
+.dop-inline .dop-input { flex: 1; min-width: 0; }
 
-/* 侧栏：筛选 + 候选，勾选即指定；加载/失败/别名都在侧栏里就地表达 */
-.dop-rail { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 12px; border: 1px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-md, 12px); background: var(--dsw-alias-settings-card-fill, var(--dsw-alias-bg-layer-1)); }
-.dop-railHead { display: flex; align-items: baseline; gap: 8px; }
-.dop-railTitle { margin: 0; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--dsw-alias-label-primary); }
-.dop-rail .dop-input { height: 30px; padding: 0 8px; font-size: 12px; }
-.dop-railList { display: flex; flex-direction: column; margin: 0 -4px; max-height: min(260px, 40vh); overflow-y: auto; }
-.dop-railRow { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 8px; align-items: start; padding: 8px 4px; border-radius: 8px; cursor: pointer; transition: background-color 120ms ease; }
-.dop-railRow:hover { background: var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-2)); }
-.dop-railRow[data-checked='true'] { background: var(--dsw-alias-bg-module-platform, var(--dsw-alias-bg-layer-2)); }
-.dop-railRow input { width: 14px; height: 14px; margin: 4px 0 0; accent-color: var(--dsw-alias-brand-primary); cursor: pointer; }
-.dop-railMain { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.dop-railTop { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.dop-railName { flex: 1; min-width: 0; font-size: 13px; line-height: 18px; color: var(--dsw-alias-label-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dop-railPrice { flex: none; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; line-height: 18px; color: var(--dsw-alias-label-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.dop-railMeta { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; line-height: 16px; color: var(--dsw-alias-label-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dop-railSkeleton { display: flex; flex-direction: column; gap: 12px; padding: 4px; }
-.dop-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 24px 16px; text-align: center; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 18px; }
-.dop-slotTitle { font-size: 14px; line-height: 22px; font-weight: 500; color: var(--dsw-alias-label-primary); }
-.dop-rail .dop-slot { padding: 16px 8px; }
-.dop-rail .dop-slotTitle { font-size: 13px; line-height: 20px; }
+.dop-inset { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: var(--dsw-radius-lg); background: var(--dsw-alias-bg-module-platform); }
+.dop-insetTitle { font-size: 14px; line-height: 22px; font-weight: 500; }
 
-/* 加载骨架：按真实行结构占位，只动 opacity */
-.dop-skeletonBar { height: 8px; border-radius: 4px; background: var(--dsw-alias-bg-layer-2); animation: dop-pulse 1.4s ease-in-out infinite; }
-@keyframes dop-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .dop-skeletonBar { animation: none; } }
+.dop-table { border: 0.5px solid var(--dsw-alias-border-l4); border-radius: var(--dsw-radius-xl); overflow: hidden; }
+.dop-tableHead { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 0.5px solid var(--dsw-alias-border-l2); }
+.dop-columns { display: grid; grid-template-columns: 20px minmax(0, 1fr) 56px 56px 64px; gap: 8px; align-items: center; padding: 6px 14px; background: var(--dsw-alias-bg-module-platform); font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); }
+.dop-row { display: grid; grid-template-columns: 20px minmax(0, 1fr) 56px 56px 64px; gap: 8px; align-items: center; min-height: 44px; box-sizing: border-box; padding: 6px 14px; border-top: 0.5px solid var(--dsw-alias-border-l2); cursor: pointer; transition: background-color 120ms ease; }
+.dop-row:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.dop-row[data-selected='true'] { background: var(--dsw-alias-bg-multi-select); }
+.dop-row input { width: 16px; height: 16px; margin: 0; accent-color: var(--dsw-alias-state-business-primary); cursor: pointer; }
+.dop-num { text-align: right; font-family: var(--ds-font-family-code, monospace); font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
+.dop-uptime { display: inline-flex; align-items: center; justify-content: flex-end; gap: 5px; font-family: var(--ds-font-family-code, monospace); font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
+.dop-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; }
+.dop-dot[data-tone='ok'] { background: var(--dsw-alias-state-success-primary); }
+.dop-dot[data-tone='warn'] { background: var(--dsw-alias-state-warn-label); }
+.dop-dot[data-tone='bad'] { background: var(--dsw-alias-state-error-primary); }
 
-/* 窄容器：侧栏收到主线下方，顺序仍是先填后挑 */
-@container (max-width: 540px) {
-  .dop-work { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-  .dop-railList { max-height: min(280px, 45vh); }
+.dop-switch { flex: none; display: inline-flex; align-items: center; height: 20px; padding: 0; border: none; background: none; cursor: pointer; }
+.dop-switchTrack { position: relative; width: 36px; height: 20px; border-radius: 999px; background: var(--dsw-alias-state-idle-primary); transition: background-color 150ms ease; }
+.dop-switch[aria-checked='true'] .dop-switchTrack { background: var(--dsw-alias-state-business-primary); }
+.dop-switchThumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--dsw-alias-switch-thumb); transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1); }
+.dop-switch[aria-checked='true'] .dop-switchThumb { transform: translateX(16px); }
+.dop-switch[disabled] { opacity: 0.4; cursor: default; }
+.dop-behavior { display: flex; align-items: flex-start; gap: 16px; }
+
+.dop-footer { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+.dop-footerStatus { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); }
+.dop-dirty { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
+.dop-spacer { flex: 1; }
+.dop-primary { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 14px; border: none; border-radius: var(--dsw-radius-md); background: var(--dsw-alias-button-primary-fill); color: var(--dsw-alias-label-primary-foreground); font: inherit; font-size: 14px; line-height: 22px; cursor: pointer; transition: background-color 120ms ease, transform 120ms ease; }
+.dop-primary:hover:not([disabled]) { background: var(--dsw-alias-button-primary-hover); }
+.dop-primary:active:not([disabled]) { transform: scale(0.98); }
+.dop-primary[disabled] { opacity: 0.4; cursor: default; }
+.dop-secondary { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 14px; border: 0.5px solid var(--dsw-alias-border-l3); border-radius: var(--dsw-radius-md); background: transparent; font: inherit; font-size: 14px; line-height: 22px; color: var(--dsw-alias-label-primary); cursor: pointer; transition: background-color 120ms ease, transform 120ms ease; }
+.dop-secondary:hover:not([disabled]) { background: var(--dsw-alias-interactive-bg-hover-solid); }
+.dop-secondary:active:not([disabled]) { transform: scale(0.98); }
+.dop-secondary[disabled] { opacity: 0.4; cursor: default; }
+.dop-danger { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 20px; padding-top: 16px; border-top: 0.5px solid var(--dsw-alias-border-l2); }
+.dop-dangerButton { height: 36px; padding: 0 14px; border: none; border-radius: var(--dsw-radius-md); background: transparent; font: inherit; font-size: 14px; line-height: 22px; color: var(--dsw-alias-state-error-primary); cursor: pointer; }
+.dop-dangerButton:hover:not([disabled]) { background: var(--dsw-alias-interactive-bg-hover-danger); }
+.dop-dangerButton[disabled] { opacity: 0.4; cursor: default; }
+
+.dop-pick { display: flex; flex-direction: column; border: 0.5px solid var(--dsw-alias-border-l4); border-radius: var(--dsw-radius-xl); overflow: hidden; }
+.dop-pickRow { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border: none; border-top: 0.5px solid var(--dsw-alias-border-l2); background: transparent; font: inherit; text-align: left; color: inherit; cursor: pointer; transition: background-color 120ms ease; }
+.dop-pickRow:first-child { border-top: none; }
+.dop-pickRow:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.dop-pickRow[data-current='true'] { background: var(--dsw-alias-bg-multi-select); }
+.dop-pickMain { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.dop-pickTop { display: flex; align-items: center; gap: 6px; }
+.dop-pickName { font-size: 14px; line-height: 22px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dop-pickPrice { margin-left: auto; font-family: var(--ds-font-family-code, monospace); font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
+.dop-config { display: flex; align-items: center; gap: 8px; min-width: 0; margin-top: 12px; }
+
+@container (max-width: 520px) {
+  .dop-colOut, .dop-colUptime { display: none; }
+  .dop-columns, .dop-row { grid-template-columns: 20px minmax(0, 1fr) 52px; }
+  .dop-behavior { flex-direction: column; }
+  .dop-footer { align-items: stretch; }
+  .dop-footer .dop-primary, .dop-footer .dop-secondary { flex: 1; }
 }
 
-
-/* 辅助信息：去卡片化，只用分隔线 */
-.dop-sub { border-top: 1px solid var(--dsw-alias-border-l2); }
-.dop-sub > summary { display: flex; align-items: center; gap: 8px; padding: 12px 0; font-size: 12px; line-height: 18px; font-weight: 500; color: var(--dsw-alias-label-secondary); cursor: pointer; }
-.dop-savedRow { display: grid; grid-template-columns: minmax(0, 1fr) 72px 96px 48px; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--dsw-alias-border-l2); font-size: 12px; line-height: 18px; }
-.dop-savedModel { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--dsw-alias-label-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dop-savedMeta { color: var(--dsw-alias-label-secondary); }
-.dop-fileline { margin: 0; padding: 0 0 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); word-break: break-all; }
-
-/* 吸底操作条：一条边 + 表面色，不包整圈边框（避免又一块卡片） */
-.dop-actionbar { position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0; padding: 12px 0; border-top: 1px solid var(--dsw-alias-border-l2); background: var(--dsw-alias-bg-layer-2); }
-.dop-actionbar .dop-status { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); max-width: 100%; }
-.dop-actionbar .dop-status[data-tone='warn'] { color: var(--dsw-alias-state-warn-primary); }
-.dop-actionbar .dop-status[data-tone='error'] { color: var(--dsw-alias-state-error-primary); }
-.dop-switch { display: inline-flex; align-items: center; gap: 8px; border: none; background: none; padding: 0; font: inherit; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-primary); cursor: pointer; }
-.dop-switch:active { opacity: 0.85; }
-.dop-switchTrack { position: relative; flex: none; width: 36px; height: 20px; border-radius: 999px; background: var(--dsw-alias-state-idle-primary, var(--dsw-alias-border-l2)); transition: background-color 150ms ease; }
-.dop-switch[aria-checked='true'] .dop-switchTrack { background: var(--dsw-alias-state-business-primary, var(--dsw-alias-brand-primary)); }
-.dop-switchThumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px; background: var(--dsw-alias-switch-thumb, var(--dsw-alias-bg-base)); transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1); }
-.dop-switch[aria-checked='true'] .dop-switchThumb { transform: translateX(16px); }
-.dop-seg { display: inline-flex; border: 1px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-md, 12px); overflow: hidden; }
-.dop-seg button { height: 32px; padding: 0 12px; border: none; background: none; font: inherit; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary); cursor: pointer; transition: background-color 120ms ease, color 120ms ease; }
-.dop-seg button:hover { color: var(--dsw-alias-label-primary); }
-.dop-seg button:active { background: var(--dsw-alias-bg-layer-1); }
-.dop-seg button[aria-pressed='true'] { background: var(--dsw-alias-bg-module-platform, var(--dsw-alias-bg-layer-2)); color: var(--dsw-alias-label-primary); font-weight: 500; }
-
+@media (prefers-reduced-motion: reduce) {
+  .dop-primary, .dop-secondary, .dop-compact, .dop-add, .dop-row, .dop-pickRow, .dop-switchThumb, .dop-switchTrack, .dop-tagButton { transition: none; }
+}
 `
 
     /**
      * 调用 Host 的 RPC 端点，把 ok:false 统一抛成 Error
      * @param {unknown} connection 浏览器侧的 connection 服务
-     * @param {string} method 操作名
+     * @param {string} method 操作名（state / models / providers / save / clear）
      * @param {unknown} payload 参数
-     * @param {AbortSignal} signal 取消信号
+     * @param {AbortSignal} [signal] 取消信号
      * @returns {Promise<any>} Host 返回的 value
      */
     async function callRpc(connection, method, payload, signal) {
@@ -393,39 +380,12 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * 计算表单对应的规则键：所有模型用通配键，否则用去空格的模型 id
-     * @param {string} scope 'model' 或 'all'
-     * @param {string} model 模型输入内容
+     * 计算某模型对应的规则键：通配模型用 `*`，否则用去空格的模型 id
+     * @param {unknown} model 模型 id 或通配标记
      * @returns {string} 规则键
      */
-    function ruleKeyOf(scope, model) {
-      return scope === 'all' ? ALL_MODELS : model.trim()
-    }
-
-    /**
-     * 找一个键对应的已存规则，兼容 DSH 的 `~` 前缀写法（带与不带都能命中）
-     * @param {Record<string, { only: string[], allowFallbacks: boolean }>} rules 规则表
-     * @param {string} key 当前表单的规则键
-     * @returns {{ storedKey: string, rule: { only: string[], allowFallbacks: boolean } } | undefined} 命中的已存规则及其真实键
-     */
-    function ruleFor(rules, key) {
-      if (!isRecord(rules)) return undefined
-      const bare = key === ALL_MODELS ? key : key.replace(/^~/, '')
-      for (const candidate of key === bare ? [key] : [key, bare]) {
-        if (Object.hasOwn(rules, candidate)) return { storedKey: candidate, rule: rules[candidate] }
-      }
-      return undefined
-    }
-
-    /**
-     * 从规则表取一条规则的勾选状态，没有规则时回退为“未选、不回退”
-     * @param {Record<string, { only: string[], allowFallbacks: boolean }>} rules 规则表
-     * @param {string} key 规则键
-     * @returns {{ selected: string[], allowFallbacks: boolean }} 表单初值
-     */
-    function formValueOf(rules, key) {
-      const rule = ruleFor(rules, key)?.rule
-      return { selected: Array.isArray(rule?.only) ? [...rule.only] : [], allowFallbacks: rule?.allowFallbacks === true }
+    function ruleKeyOf(model) {
+      return model === ALL_MODELS ? ALL_MODELS : String(model ?? '').trim()
     }
 
     /**
@@ -438,8 +398,118 @@ window.__ModuleLoader__.load({
     }
 
     /**
+     * 在规则表里找一条规则，兼容 `~` 前缀的两种写法
+     * @param {unknown} rules 规则表，来自 state RPC
+     * @param {string} key 规则键
+     * @returns {{ key: string, only: string[], allowFallbacks: boolean } | undefined} 命中的规则，含真实键
+     */
+    function findRule(rules, key) {
+      if (!isRecord(rules)) return undefined
+      const bare = key === ALL_MODELS ? key : key.replace(/^~/, '')
+      const keys = key === bare ? [key] : [key, bare]
+      for (const candidate of keys) {
+        if (!Object.hasOwn(rules, candidate)) continue
+        const rule = rules[candidate]
+        return {
+          key: candidate,
+          only: Array.isArray(rule?.only) ? rule.only : [],
+          allowFallbacks: rule?.allowFallbacks === true,
+        }
+      }
+      return undefined
+    }
+
+    /**
+     * 把规则表整理成清单页需要的行，通配规则排在最前
+     * @param {unknown} snapshot state RPC 返回的宿主状态，含 rules
+     * @returns {Array<{ key: string, only: string[], allowFallbacks: boolean }>} 已存规则行
+     */
+    function listRules(snapshot) {
+      const rules = snapshot?.rules
+      if (!isRecord(rules)) return []
+      /* 排序步骤：通配键置顶，其余按模型 id 字典序 */
+      return Object.keys(rules)
+        .sort((left, right) => (left === ALL_MODELS ? -1 : right === ALL_MODELS ? 1 : left.localeCompare(right)))
+        .map(key => findRule(rules, key))
+        .filter(rule => rule !== undefined)
+    }
+
+    /**
+     * 取当前默认模型；默认选择不走 OpenRouter 时返回空串
+     * @param {unknown} snapshot state RPC 返回的宿主状态，含 defaultSelection
+     * @returns {string} 默认模型 id，没有时为 ''
+     */
+    function defaultModelOf(snapshot) {
+      const selection = snapshot?.defaultSelection
+      if (selection?.provider !== 'openrouter') return ''
+      return typeof selection.model === 'string' ? selection.model : ''
+    }
+
+    /**
+     * 判断规则键是否就是当前默认模型，忽略 `~` 前缀差异
+     * @param {string} key 规则键
+     * @param {string} defaultModel 当前默认模型，来自 defaultModelOf()
+     * @returns {boolean} true 表示这条指定当前生效
+     */
+    function isDefaultRule(key, defaultModel) {
+      if (defaultModel === '' || key === ALL_MODELS) return false
+      return key.replace(/^~/, '') === defaultModel.replace(/^~/, '')
+    }
+
+    /**
+     * 判断草稿相对已存规则是否有改动
+     * @param {unknown} snapshot 宿主状态，含 rules
+     * @param {string} key 草稿对应的规则键
+     * @param {{ providers: string[], allowFallbacks: boolean }} draft 编辑中的草稿
+     * @returns {boolean} true 表示有未保存修改
+     */
+    function hasUnsavedChanges(snapshot, key, draft) {
+      const stored = findRule(snapshot?.rules, key)
+      if (stored === undefined) return draft.providers.length > 0 || draft.allowFallbacks
+      if (stored.allowFallbacks !== draft.allowFallbacks) return true
+      if (stored.only.length !== draft.providers.length) return true
+      /* 比对步骤：两份 slug 先排序再逐项比，避免勾选顺序造成假“未保存” */
+      const storedSorted = [...stored.only].sort()
+      const draftSorted = [...draft.providers].sort()
+      return storedSorted.some((slug, index) => slug !== draftSorted[index])
+    }
+
+    /**
+     * 把供应商清单按输入价升序排列，未报价的排到最后
+     * @param {unknown} catalog providers RPC 返回的清单，含 providers
+     * @returns {Array<Record<string, unknown>>} 排序后的供应商行
+     */
+    function sortProvidersByPrice(catalog) {
+      const rows = Array.isArray(catalog?.providers) ? catalog.providers : []
+      /* 排序步骤：输入价升序；未知价置底；同价按 tag 字典序 */
+      return [...rows].sort((left, right) => {
+        const leftPrice = Number(left?.promptPerMillion)
+        const rightPrice = Number(right?.promptPerMillion)
+        const leftKnown = Number.isFinite(leftPrice)
+        const rightKnown = Number.isFinite(rightPrice)
+        if (leftKnown && rightKnown && leftPrice !== rightPrice) return leftPrice - rightPrice
+        if (leftKnown !== rightKnown) return leftKnown ? -1 : 1
+        return String(left?.tag ?? '').localeCompare(String(right?.tag ?? ''))
+      })
+    }
+
+    /**
+     * 按关键字过滤模型目录，匹配 id 或名称
+     * @param {unknown} models models RPC 返回的模型数组
+     * @param {string} query 搜索词
+     * @returns {Array<Record<string, unknown>>} 命中的模型
+     */
+    function filterModels(models, query) {
+      const rows = Array.isArray(models) ? models : []
+      const keyword = query.trim().toLowerCase()
+      if (keyword === '') return rows
+      /* 过滤步骤：id 或名称包含关键字即命中 */
+      return rows.filter(row => String(row.id).toLowerCase().includes(keyword) || String(row.name).toLowerCase().includes(keyword))
+    }
+
+    /**
      * 把每百万 token 价格渲染成简短数字
-     * @param {number | null} value 每百万 token 的美元价
+     * @param {unknown} value 每百万 token 的美元价
      * @returns {string} 形如 0.105，未知时为 '?'
      */
     function priceText(value) {
@@ -448,11 +518,23 @@ window.__ModuleLoader__.load({
 
     /**
      * 把 token 数渲染成带千分位的文本
-     * @param {number | null} value token 数
+     * @param {unknown} value token 数
      * @returns {string} 形如 1,048,576，未知时为 '?'
      */
     function tokenText(value) {
       return typeof value === 'number' && Number.isFinite(value) ? Math.round(value).toLocaleString('en-US') : '?'
+    }
+
+    /**
+     * 把 token 数压成窄栏用的短写法
+     * @param {unknown} value token 数
+     * @returns {string} 形如 1.05M / 384K，未知时为 '?'
+     */
+    function compactToken(value) {
+      if (typeof value !== 'number' || !Number.isFinite(value)) return '?'
+      if (value >= 1000000) return `${(value / 1000000).toFixed(2).replace(/\.?0+$/, '')}M`
+      if (value >= 1000) return `${Math.round(value / 1000)}K`
+      return String(Math.round(value))
     }
 
     /**
@@ -462,6 +544,28 @@ window.__ModuleLoader__.load({
      */
     function modalityText(list) {
       return Array.isArray(list) && list.length > 0 ? list.join(', ') : '—'
+    }
+
+    /**
+     * 取精度文案：清单缺字段或标为 unknown 时统一归到“未知”
+     * @param {unknown} row 供应商行
+     * @param {string} unknownLabel 本地化的“未知”
+     * @returns {string} 精度文案
+     */
+    function quantizationText(row, unknownLabel) {
+      const value = row?.quantization
+      return typeof value === 'string' && value !== '' && value !== 'unknown' ? value : unknownLabel
+    }
+
+    /**
+     * 按可用性百分比给出小圆点的色调
+     * @param {unknown} value 近 30 分钟可用性百分比
+     * @returns {'ok' | 'warn' | 'bad' | 'none'} 色调，未知时为 none
+     */
+    function uptimeTone(value) {
+      if (typeof value !== 'number' || !Number.isFinite(value)) return 'none'
+      if (value >= 99) return 'ok'
+      return value >= 95 ? 'warn' : 'bad'
     }
 
     /**
@@ -482,7 +586,48 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * 构造设置分区组件：设置左侧导航“供应商路由”对应的页面
+     * 把多段手填内容拆成合法与非法两组 slug
+     * @param {unknown} text 手填内容，可含逗号、空格、换行
+     * @returns {{ valid: string[], invalid: string[] }} 校验结果
+     */
+    function splitManualSlugs(text) {
+      const parts = String(text ?? '').split(/[\s,;，；]+/).filter(part => part !== '')
+      /* 分组步骤：逐项过 slug 正则，合法与非法分开 */
+      return {
+        valid: parts.filter(part => PROVIDER_SLUG.test(part)),
+        invalid: parts.filter(part => !PROVIDER_SLUG.test(part)),
+      }
+    }
+
+    /**
+     * 构造设置分区的初始页面状态
+     * @returns {Record<string, unknown>} 页面状态，view 初始为清单
+     */
+    function initialPage() {
+      return {
+        phase: 'loading',
+        snapshot: null,
+        view: 'list',
+        notice: null,
+        busy: false,
+        draft: { model: '', providers: [], allowFallbacks: false },
+        storedKey: '',
+        confirmDelete: false,
+        catalog: null,
+        catalogPhase: 'idle',
+        catalogError: null,
+        manualInput: '',
+        manualError: null,
+        models: null,
+        modelsPhase: 'idle',
+        modelsError: null,
+        modelFilter: '',
+        manualModel: '',
+      }
+    }
+
+    /**
+     * 构造设置分区组件：供应商路由器的清单 / 编辑 / 选择模型三视图
      * @param {{ locale: unknown, connection: unknown }} ctx 浏览器插件上下文
      * @returns {() => unknown} 设置分区 React 组件
      */
@@ -491,118 +636,82 @@ window.__ModuleLoader__.load({
 
       return function OpenRouterProviderSection() {
         const mounted = useRef(true)
-        const [phase, setPhase] = useState('loading')
-        const [state, setState] = useState(null)
-        const [notice, setNotice] = useState(null)
-        const [dirty, setDirty] = useState(false)
-        const [model, setModel] = useState('')
-        const [scope, setScope] = useState('model')
-        const [selected, setSelected] = useState([])
-        const [allowFallbacks, setAllowFallbacks] = useState(false)
-        const [catalog, setCatalog] = useState(null)
-        const [catalogPhase, setCatalogPhase] = useState('idle')
-        const [catalogError, setCatalogError] = useState(null)
-        const [providerFilter, setProviderFilter] = useState('')
-        const [manualInput, setManualInput] = useState('')
-        const [manualError, setManualError] = useState(null)
-        const [manualModel, setManualModel] = useState('')
-        const [busy, setBusy] = useState(false)
-        const [pickerOpen, setPickerOpen] = useState(false)
-        const [modelCatalog, setModelCatalog] = useState(null)
-        const [modelCatalogPhase, setModelCatalogPhase] = useState('idle')
-        const [modelCatalogError, setModelCatalogError] = useState(null)
-        const [modelFilter, setModelFilter] = useState('')
-        const [confirmRemove, setConfirmRemove] = useState(false)
+        const [page, setPage] = useState(initialPage())
 
-        const modelId = modelIdFromInput(model)
-        const currentKey = ruleKeyOf(scope, modelId)
-        const storedRule = ruleFor(state?.rules, currentKey)
-        const hasRule = storedRule !== undefined
+        const providerRows = useMemo(() => sortProvidersByPrice(page.catalog), [page.catalog])
+        const savedRows = useMemo(() => listRules(page.snapshot), [page.snapshot])
+        const pickerRows = useMemo(() => filterModels(page.models, page.modelFilter), [page.models, page.modelFilter])
 
-        const savedRules = useMemo(() => {
-          const rules = state?.rules
-          if (!isRecord(rules)) return []
-          return Object.entries(rules).sort((left, right) => left[0].localeCompare(right[0]))
-        }, [state])
+        const defaultModel = defaultModelOf(page.snapshot)
+        const providerTags = page.draft.providers
+        const knownSlugs = providerRows.map(row => row.tag)
+        const unknownSlugs = providerTags.filter(slug => !knownSlugs.includes(slug))
 
-        const markDirty = () => { setDirty(true); setNotice(null) }
+        /**
+         * 合并一次页面状态补丁
+         * @param {Record<string, unknown>} next 要覆盖的字段
+         * @returns {void}
+         */
+        const patch = (next) => setPage(current => ({ ...current, ...next }))
 
-        const syncFromState = (nextState, nextKey) => {
-          const form = formValueOf(nextState?.rules ?? {}, nextKey)
-          setSelected(form.selected)
-          setAllowFallbacks(form.allowFallbacks)
-          setDirty(false)
-          setNotice(null)
-        }
-
-        /* 加载某模型（裸 id 或模型页 URL）的规格与供应商 */
-        const loadProviders = useCallback(async (input, signal) => {
+        /**
+         * 按当前草稿里的模型拉供应商清单
+         * @param {string} input 模型 id 或模型页地址
+         * @returns {Promise<void>} 拉取结束
+         */
+        const loadProviders = async (input) => {
           const raw = String(input ?? '').trim()
           if (raw === '') return
-          setCatalogPhase('loading')
-          setCatalogError(null)
+          patch({ catalogPhase: 'loading', catalogError: null })
           try {
-            const value = await callRpc(ctx.connection, 'providers', { input: raw }, signal)
-            if (signal?.aborted || !mounted.current) return
-            setCatalog(value ?? null)
-            if (typeof value?.model === 'string' && value.model !== '') {
-              setModel(value.model)
-              setCatalogPhase('ready')
-              return
-            }
-            setCatalogPhase('error')
-            setCatalogError(t('listEmptyHint'))
+            const value = await callRpc(ctx.connection, 'providers', { input: raw })
+            if (!mounted.current) return
+            patch({ catalog: value ?? null, catalogPhase: 'ready' })
           } catch (error) {
-            if (signal?.aborted || !mounted.current) return
-            setCatalogError(error?.message ?? String(error))
-            setCatalogPhase('error')
-          }
-        }, [])
-
-        /* 模型目录：展开“更换模型”时按需加载 */
-        const loadModelCatalog = async (signal) => {
-          setModelCatalogPhase('loading')
-          setModelCatalogError(null)
-          try {
-            const rows = await callRpc(ctx.connection, 'models', {}, signal)
-            if (signal?.aborted || !mounted.current) return
-            setModelCatalog(Array.isArray(rows) ? rows : [])
-            setModelCatalogPhase('ready')
-          } catch (error) {
-            if (signal?.aborted || !mounted.current) return
-            setModelCatalogError(error?.message ?? String(error))
-            setModelCatalogPhase('error')
+            if (!mounted.current) return
+            patch({ catalogError: error?.message ?? String(error), catalogPhase: 'error' })
           }
         }
 
-        const openPicker = () => {
-          setPickerOpen(true)
-          setConfirmRemove(false)
-          if (modelFilter === '') {
-            const author = modelId.replace(/^~/, '').split('/')[0]
-            if (author !== '') setModelFilter(author)
+        /**
+         * 拉模型目录，供选择模型视图搜索
+         * @returns {Promise<void>} 拉取结束
+         */
+        const loadModels = async () => {
+          patch({ modelsPhase: 'loading', modelsError: null })
+          try {
+            const value = await callRpc(ctx.connection, 'models', {})
+            if (!mounted.current) return
+            patch({ models: Array.isArray(value) ? value : [], modelsPhase: 'ready' })
+          } catch (error) {
+            if (!mounted.current) return
+            patch({ modelsError: error?.message ?? String(error), modelsPhase: 'error' })
           }
-          if (modelCatalog === null && modelCatalogPhase !== 'loading') void loadModelCatalog()
         }
 
-        /* 读 Host 状态；默认模型确实走 OpenRouter 时才回填并自动拉候选 */
+        /**
+         * 读宿主状态；默认模型确实走 OpenRouter 时把它带进草稿
+         * @param {AbortSignal} signal 取消信号
+         * @returns {Promise<void>} 读取结束
+         */
         const loadState = async (signal) => {
           try {
-            const value = await callRpc(ctx.connection, 'state', {}, signal)
+            const snapshot = await callRpc(ctx.connection, 'state', {}, signal)
             if (signal?.aborted || !mounted.current) return
-            const selection = value?.defaultSelection ?? null
-            const openRouterDefault = selection !== null && selection.provider === 'openrouter'
-              && typeof selection.model === 'string'
-            const initialModel = openRouterDefault ? selection.model : ''
-            setState(value)
-            setModel(initialModel)
-            syncFromState(value, ruleKeyOf('model', initialModel))
-            setPhase('ready')
-            if (initialModel !== '') void loadProviders(initialModel, signal)
+            const model = defaultModelOf(snapshot)
+            const stored = findRule(snapshot.rules, ruleKeyOf(model))
+            patch({
+              snapshot,
+              phase: 'ready',
+              draft: {
+                model,
+                providers: stored?.only ?? [],
+                allowFallbacks: stored?.allowFallbacks === true,
+              },
+            })
           } catch (error) {
             if (signal?.aborted || !mounted.current) return
-            setNotice({ tone: 'error', text: `${t('loadFailedPrefix')}${error?.message ?? String(error)}` })
-            setPhase('error')
+            patch({ phase: 'error', notice: { tone: 'error', text: `${t('loadFailedPrefix')}${error?.message ?? String(error)}` } })
           }
         }
 
@@ -616,440 +725,666 @@ window.__ModuleLoader__.load({
           }
         }, [])
 
-        const toggleProvider = (tag) => {
-          if (busy) return
-          setSelected(current => current.includes(tag) ? current.filter(slug => slug !== tag) : [...current, tag])
-          markDirty()
+        /**
+         * 回到清单视图并清掉编辑期的临时状态
+         * @returns {void}
+         */
+        const showList = () => {
+          patch({
+            view: 'list',
+            notice: null,
+            confirmDelete: false,
+            catalog: null,
+            catalogPhase: 'idle',
+            catalogError: null,
+            manualInput: '',
+            manualError: null,
+          })
         }
 
-        /* 手动输入供应商：一次可填多个，逐个校验，非法项留在输入框并报错 */
+        /**
+         * 打开某条已存规则的编辑视图，并把规则值灌进草稿
+         * @param {string} key 规则键，`*` 表示所有模型
+         * @returns {void}
+         */
+        const openRule = (key) => {
+          const stored = findRule(page.snapshot?.rules, key)
+          patch({
+            view: 'editor',
+            storedKey: key,
+            notice: null,
+            confirmDelete: false,
+            manualInput: '',
+            manualError: null,
+            catalog: null,
+            catalogPhase: 'idle',
+            catalogError: null,
+            draft: {
+              model: key,
+              providers: stored?.only ?? [],
+              allowFallbacks: stored?.allowFallbacks === true,
+            },
+          })
+          if (ruleKeyOf(key) !== ALL_MODELS) void loadProviders(key)
+        }
+
+        /**
+         * 新建指定：默认模型还没有自己的规则时直接带上它，省一步选择
+         * @returns {void}
+         */
+        const startNewRule = () => {
+          const candidate = defaultModel
+          const taken = candidate !== '' && findRule(page.snapshot?.rules, ruleKeyOf(candidate)) !== undefined
+          const model = taken ? '' : candidate
+          patch({
+            view: 'editor',
+            storedKey: '',
+            notice: null,
+            confirmDelete: false,
+            manualInput: '',
+            manualError: null,
+            catalog: null,
+            catalogPhase: 'idle',
+            catalogError: null,
+            draft: { model, providers: [], allowFallbacks: false },
+          })
+          if (model !== '') void loadProviders(model)
+        }
+
+        /**
+         * 打开选择模型视图，目录没拉过就顺手拉一次
+         * @returns {void}
+         */
+        const openPicker = () => {
+          const author = page.draft.model.replace(/^~/, '').split('/')[0]
+          patch({ view: 'picker', notice: null, modelFilter: page.modelFilter === '' ? author : page.modelFilter })
+          if (page.models === null && page.modelsPhase !== 'loading') void loadModels()
+        }
+
+        /**
+         * 选定模型后回到编辑视图并拉它的供应商清单
+         * @param {string} model 模型 id，`*` 表示所有模型
+         * @returns {void}
+         */
+        const chooseModel = (model) => {
+          patch({
+            view: 'editor',
+            modelFilter: '',
+            catalog: null,
+            catalogPhase: 'idle',
+            catalogError: null,
+            draft: { ...page.draft, model },
+          })
+          if (model !== ALL_MODELS) void loadProviders(model)
+        }
+
+        /**
+         * 勾选或取消勾选一个供应商
+         * @param {string} slug 供应商 tag
+         * @returns {void}
+         */
+        const toggleProvider = (slug) => {
+          if (page.busy) return
+          setPage(current => {
+            const has = current.draft.providers.includes(slug)
+            const providers = has
+              ? current.draft.providers.filter(item => item !== slug)
+              : [...current.draft.providers, slug]
+            return { ...current, notice: null, draft: { ...current.draft, providers } }
+          })
+        }
+
+        /**
+         * 把草稿里的供应商全部清空
+         * @returns {void}
+         */
+        const clearProviders = () => {
+          if (page.busy) return
+          setPage(current => ({ ...current, notice: null, draft: { ...current.draft, providers: [] } }))
+        }
+
+        /**
+         * 并入手填的供应商 slug，非法项留在输入框并给出提示
+         * @returns {void}
+         */
         const addManualProviders = () => {
-          if (busy) return
-          const parts = manualInput.split(/[\s,;，；]+/).map(part => part.trim()).filter(part => part !== '')
-          if (parts.length === 0) return
-          const valid = parts.filter(part => PROVIDER_SLUG.test(part))
-          const invalid = parts.filter(part => !PROVIDER_SLUG.test(part))
-          if (valid.length > 0) {
-            setSelected(current => {
-              const next = [...current]
-              for (const slug of valid) if (!next.includes(slug)) next.push(slug)
-              return next
-            })
-            markDirty()
-          }
-          setManualError(invalid.length === 0 ? null : `${t('manualInvalid')}${invalid.join('、')}`)
-          setManualInput(invalid.join(' '))
-        }
-
-        const chooseModel = (id) => {
-          if (busy) return
-          setModel(id)
-          setPickerOpen(false)
-          setConfirmRemove(false)
-          setCatalog(null)
-          setCatalogPhase('idle')
-          setProviderFilter('')
-          if (state !== null) syncFromState(state, ruleKeyOf(scope, id))
-          void loadProviders(id)
-        }
-
-        const changeScope = (next) => {
-          setScope(next)
-          setConfirmRemove(false)
-          if (state !== null) syncFromState(state, ruleKeyOf(next, modelId))
-        }
-
-        const save = async () => {
-          setBusy(true)
-          setNotice(null)
-          try {
-            const value = await callRpc(ctx.connection, 'save', {
-              scope, model: modelId, only: selected, allowFallbacks,
-            })
-            if (!mounted.current) return
-            setState(value)
-            setDirty(false)
-            const savedKey = scope === 'all' ? ALL_MODELS : modelId
-            const defaultModel = value?.defaultSelection?.model
-            const mismatch = scope === 'model' && typeof defaultModel === 'string' && defaultModel !== ''
-              && defaultModel.replace(/^~/, '') !== savedKey.replace(/^~/, '')
-            setNotice(mismatch
-              ? { tone: 'warn', text: `${t('savedMismatchPrefix')}${defaultModel}${t('savedMismatchSuffix')}` }
-              : { tone: 'success', text: t('saved') })
-          } catch (error) {
-            if (!mounted.current) return
-            setNotice({ tone: 'error', text: `${t('failedPrefix')}${error?.message ?? String(error)}` })
-          } finally {
-            if (mounted.current) setBusy(false)
-          }
-        }
-
-        const clearRule = async (key) => {
-          setBusy(true)
-          setNotice(null)
-          setConfirmRemove(false)
-          try {
-            const value = await callRpc(ctx.connection, 'clear', {
-              scope: key === ALL_MODELS ? 'all' : 'model', model: key === ALL_MODELS ? '' : key,
-            })
-            if (!mounted.current) return
-            setState(value)
-            setNotice({ tone: 'success', text: t('removed') })
-            if (key === currentKey || key === storedRule?.storedKey) {
-              setSelected([])
-              setAllowFallbacks(false)
-              setDirty(false)
+          if (page.busy) return
+          const { valid, invalid } = splitManualSlugs(page.manualInput)
+          if (valid.length === 0 && invalid.length === 0) return
+          setPage(current => {
+            const providers = [...current.draft.providers]
+            for (const slug of valid) if (!providers.includes(slug)) providers.push(slug)
+            return {
+              ...current,
+              notice: null,
+              manualInput: invalid.join(' '),
+              manualError: invalid.length === 0 ? null : `${t('manualInvalidPrefix')}${invalid.join('、')}`,
+              draft: { ...current.draft, providers },
             }
+          })
+        }
+
+        /**
+         * 保存草稿并回到清单；保存结果显示在清单页状态行
+         * @returns {Promise<void>} 保存结束
+         */
+        const saveDraft = async () => {
+          /* 入参取自草稿，作用范围由模型键决定 */
+          const { model, providers, allowFallbacks } = page.draft
+          const scope = ruleKeyOf(model) === ALL_MODELS ? 'all' : 'model'
+
+          /* 执行业务：保存规则，回填宿主状态并回到清单 */
+          patch({ busy: true, notice: null })
+          try {
+            const snapshot = await callRpc(ctx.connection, 'save', {
+              scope,
+              model: scope === 'all' ? '' : model,
+              only: providers,
+              allowFallbacks,
+            })
+            if (!mounted.current) return
+            /* 默认模型与这条规则不一致时降级为提示，不拦住保存 */
+            const currentDefault = defaultModelOf(snapshot)
+            const mismatch = scope === 'model' && currentDefault !== '' && !isDefaultRule(ruleKeyOf(model), currentDefault)
+            patch({
+              snapshot,
+              busy: false,
+              view: 'list',
+              confirmDelete: false,
+              notice: mismatch
+                ? { tone: 'warn', text: `${t('savedMismatchPrefix')}${currentDefault}${t('savedMismatchSuffix')}` }
+                : { tone: 'success', text: t('saved') },
+            })
           } catch (error) {
             if (!mounted.current) return
-            setNotice({ tone: 'error', text: `${t('removeFailedPrefix')}${error?.message ?? String(error)}` })
-          } finally {
-            if (mounted.current) setBusy(false)
+            patch({ busy: false, notice: { tone: 'error', text: `${t('saveFailedPrefix')}${error?.message ?? String(error)}` } })
           }
         }
 
-        /* 对象条文案 */
-        const specs = catalog?.specs
-        const providerRows = Array.isArray(catalog?.providers) ? catalog.providers : []
-        const objectName = isRecord(specs) && specs.name !== '' ? specs.name : (modelId === '' ? t('modelUnknown') : modelId)
-        const objectSpecs = [
-          isRecord(specs) && typeof specs.contextWindow === 'number' ? `${t('colContext')} ${tokenText(specs.contextWindow)}` : null,
-          isRecord(specs) && typeof specs.maxCompletionTokens === 'number' ? `${t('colMaxOutput')} ${tokenText(specs.maxCompletionTokens)}` : null,
-          isRecord(specs) && Array.isArray(specs.inputModalities) && specs.inputModalities.length > 0
-            ? `${t('modelInput')} ${modalityText(specs.inputModalities)}`
-            : null,
-          catalogPhase === 'ready' && providerRows.length > 0 ? `${providerRows.length}${t('modelCountSuffix')}` : null,
-        ].filter(Boolean).join(' · ')
-        const modelIsAlias = modelId.startsWith('~')
-        const emptyReason = catalog?.emptyReason
+        /**
+         * 删除一条指定并回到清单
+         * @param {string} key 规则键
+         * @returns {Promise<void>} 删除结束
+         */
+        const deleteRule = async (key) => {
+          /* 作用范围由规则键决定，通配键删的是全局规则 */
+          const scope = ruleKeyOf(key) === ALL_MODELS ? 'all' : 'model'
 
-        /* 更换模型面板 */
-        const renderPicker = () => {
-          if (modelCatalogPhase === 'loading') return h('p', { className: 'dop-hint' }, t('pickerLoading'))
-          if (modelCatalogPhase === 'error') {
-            return h('div', null,
-              h('p', { className: 'dop-alert', role: 'alert' }, `${t('pickerError')}${modelCatalogError}`),
-              h('button', {
-                type: 'button', className: 'dop-button', disabled: busy,
-                onClick: () => { void loadModelCatalog() },
-              }, t('retry')))
+          /* 执行业务：删除后回填状态并回到清单，避免停在已失效的编辑页 */
+          patch({ busy: true, notice: null })
+          try {
+            const snapshot = await callRpc(ctx.connection, 'clear', {
+              scope,
+              model: scope === 'all' ? '' : key,
+            })
+            if (!mounted.current) return
+            patch({ snapshot, busy: false, view: 'list', confirmDelete: false, notice: { tone: 'success', text: t('deleted') } })
+          } catch (error) {
+            if (!mounted.current) return
+            patch({ busy: false, notice: { tone: 'error', text: `${t('deleteFailedPrefix')}${error?.message ?? String(error)}` } })
           }
-          if (!Array.isArray(modelCatalog)) return null
-          const query = modelFilter.trim().toLowerCase()
-          const matches = modelCatalog.filter(row => query === ''
-            || String(row.id).toLowerCase().includes(query)
-            || String(row.name).toLowerCase().includes(query))
-          const shown = matches.slice(0, MODEL_LIST_LIMIT)
-          return h('div', { className: 'dop-modelList' },
-            shown.length === 0
-              ? h('div', { className: 'dop-slot' }, t('pickerEmptyList'))
-              : shown.map(row => h('button', {
-                type: 'button', key: row.id, className: 'dop-modelRow',
-                'data-current': row.id === modelId ? 'true' : undefined,
-                disabled: busy,
-                onClick: () => { chooseModel(row.id) },
-              },
-              h('span', { className: 'dop-modelMain' },
-                h('span', { className: 'dop-modelName' }, row.name === '' ? row.id : row.name),
-                h('span', { className: 'dop-modelMeta' },
-                  `${row.id} · ${t('colContext')} ${tokenText(row.contextWindow)} · ${t('colInput')} $${priceText(row.promptPerMillion)} · ${t('colOutput')} $${priceText(row.completionPerMillion)}`)),
-              row.alias === true ? h('span', { className: 'dop-tag' }, t('badgeAlias')) : null,
-              row.router === true ? h('span', { className: 'dop-tag' }, t('badgeRouter')) : null)),
-            matches.length > shown.length ? h('p', { className: 'dop-hint' }, t('pickerTruncated')) : null)
         }
 
-        /* 精度文案：清单缺字段时统一显示“未知” */
-        const quantizationText = (row) => {
-          const value = row?.quantization
-          return typeof value === 'string' && value !== '' && value !== 'unknown' ? value : t('unknownValue')
+        /**
+         * 渲染一行标签，配色由变体决定
+         * @param {string} label 标签文案
+         * @param {string} [variant] accent / warn / muted，缺省为中性
+         * @param {string} [key] React key
+         * @returns {unknown} 标签节点
+         */
+        const tag = (label, variant, key) => h('span', { key, className: `dop-tag${variant ? ` dop-tag${variant[0].toUpperCase()}${variant.slice(1)}` : ''}` }, label)
+
+        /**
+         * 渲染状态行，没内容时不占位
+         * @returns {unknown} 状态节点或 null
+         */
+        const renderNotice = () => (page.notice === null
+          ? null
+          : h('p', { className: 'dop-status', 'data-tone': page.notice.tone, role: 'status', 'aria-live': 'polite' }, page.notice.text))
+
+        /**
+         * 渲染加号图标，尺寸随上下文缩放
+         * @returns {unknown} svg 节点
+         */
+        const plusIcon = () => h('svg', {
+          width: 12, height: 12, viewBox: '0 0 12 12', 'aria-hidden': 'true',
+          fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round',
+        }, h('path', { d: 'M6 2v8M2 6h8' }))
+
+        /**
+         * 渲染返回上级的小箭头
+         * @returns {unknown} svg 节点
+         */
+        const backIcon = () => h('svg', {
+          width: 12, height: 12, viewBox: '0 0 12 12', 'aria-hidden': 'true',
+          fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round',
+        }, h('path', { d: 'M7 2L3 6l4 4' }))
+
+        /**
+         * 渲染清单页里的一条指定
+         * @param {{ key: string, only: string[], allowFallbacks: boolean }} row 已存规则行
+         * @returns {unknown} 卡片节点
+         */
+        const renderRuleCard = (row) => {
+          const isAll = row.key === ALL_MODELS
+          const meta = isAll ? t('allModelsMeta') : t('handsTo')
+          return h('li', { key: row.key, className: 'dop-card' },
+            h('div', { className: 'dop-rowHead' },
+              h('div', { className: 'dop-rowMain' },
+                h('div', { className: 'dop-rowTitle' },
+                  h('span', { className: 'dop-rowName' }, isAll ? t('allModels') : row.key),
+                  isDefaultRule(row.key, defaultModel) ? tag(t('tagDefault'), 'accent') : null,
+                  isAll ? tag(t('tagWildcard')) : null,
+                  tag(row.allowFallbacks ? t('tagFallbacks') : t('tagNoFallbacks'))),
+                h('div', { className: 'dop-tags' },
+                  h('span', { className: 'dop-meta' }, meta),
+                  row.only.map(slug => tag(slug, undefined, slug)))),
+              h('div', { className: 'dop-actions' },
+                h('button', {
+                  type: 'button', className: 'dop-compact', disabled: page.busy,
+                  onClick: () => { openRule(row.key) },
+                }, t('edit')),
+                h('button', {
+                  type: 'button', className: 'dop-compact dop-compactDanger', disabled: page.busy,
+                  onClick: () => { void deleteRule(row.key) },
+                }, t('remove')))))
         }
 
-        /* 紧凑 token 数：1,048,576 → 1.05M，供窄栏使用 */
-        const compactToken = (value) => {
-          if (typeof value !== 'number' || !Number.isFinite(value)) return '?'
-          if (value >= 1000000) return `${(value / 1000000).toFixed(2).replace(/\.?0+$/, '')}M`
-          if (value >= 1000) return `${Math.round(value / 1000)}K`
-          return String(Math.round(value))
+        /**
+         * 渲染首次进入的三步引导
+         * @returns {unknown} 引导节点
+         */
+        const renderGuide = () => h('div', { className: 'dop-steps' },
+          h('span', { className: 'dop-step' }, h('span', { className: 'dop-stepNum' }, '1'), t('step1')),
+          h('span', { className: 'dop-step' }, h('span', { className: 'dop-stepNum' }, '2'), t('step2')),
+          h('span', { className: 'dop-step' }, h('span', { className: 'dop-stepNum' }, '3'), t('step3')))
+
+        /**
+         * 渲染清单视图：标题、引导、指定行、新建槽、规则文件路径
+         * @returns {unknown} 视图节点
+         */
+        const renderListPage = () => {
+          const isEmpty = savedRows.length === 0
+          return h('section', { className: 'dop' },
+            h('style', null, CSS),
+            h('header', { className: 'dop-head' },
+              h('h1', { className: 'dop-title' }, t('title')),
+              h('p', { className: 'dop-intro' }, t('intro'))),
+            page.phase === 'loading' ? h('p', { className: 'dop-meta' }, t('loadingRules')) : null,
+            renderNotice(),
+            isEmpty && page.phase === 'ready' ? h('div', { className: 'dop-empty' }, t('emptyBody')) : null,
+            isEmpty && page.phase === 'ready' ? renderGuide() : null,
+            h('ul', { className: 'dop-list' },
+              savedRows.map(renderRuleCard),
+              h('li', { key: 'add' },
+                h('button', {
+                  type: 'button', className: 'dop-add', disabled: page.busy || page.phase !== 'ready',
+                  onClick: startNewRule,
+                }, plusIcon(), t('addRule')))),
+            h('div', { className: 'dop-config' },
+              h('span', { className: 'dop-meta' }, t('configLabel')),
+              h('span', { className: 'dop-code' }, page.snapshot?.policyFile ?? '')))
         }
 
-        /* 一条已指定供应商：名称与价格同排，规格并入副行；清单外的 slug 就地标出拼写风险 */
-        const renderPinnedRow = (slug) => {
-          const row = providerRows.find(item => item.tag === slug) ?? null
-          const known = row !== null
-          const name = known ? (row.providerName === '' ? row.tag : row.providerName) : slug
-          const uptime = typeof row?.uptimeLast30m === 'number' && Number.isFinite(row.uptimeLast30m)
-            ? ` · ${t('colUptime')} ${row.uptimeLast30m.toFixed(1)}%`
-            : ''
-          const meta = known
-            ? `${row.tag} · ${t('colQuant')} ${quantizationText(row)} · ${t('colContext')} ${tokenText(row.contextLength)} · ${t('maxOutputShort')} ${tokenText(row.maxCompletionTokens)}${uptime}${row.degraded === true ? ` · ${t('degradedTag')}` : ''}`
-            : `${slug} · ${t('notInCatalog')}`
-          return h('div', { className: 'dop-pin', key: slug, 'data-unknown': known ? undefined : 'true' },
+        /**
+         * 渲染模型卡片，展示名称、id 与规格
+         * @returns {unknown} 卡片节点
+         */
+        const renderModelCard = () => {
+          const model = page.draft.model
+          const isAll = ruleKeyOf(model) === ALL_MODELS
+          const specs = page.catalog?.specs
+          const facts = [
+            isRecord(specs) && typeof specs.contextWindow === 'number' ? `${t('context')} ${tokenText(specs.contextWindow)}` : null,
+            isRecord(specs) && typeof specs.maxCompletionTokens === 'number' ? `${t('maxOutput')} ${tokenText(specs.maxCompletionTokens)}` : null,
+            isRecord(specs) && Array.isArray(specs.inputModalities) && specs.inputModalities.length > 0
+              ? `${t('inputLabel')} ${modalityText(specs.inputModalities)}`
+              : null,
+          ].filter(Boolean).join(' · ')
+          /* 主路径：模型已选定就展示身份与规格；未选定只留一个选择入口 */
+          const body = model === ''
+            ? h('div', { className: 'dop-rowMain' }, h('span', { className: 'dop-rowName' }, t('pickModelFirst')))
+            : h('div', { className: 'dop-rowMain' },
+              h('div', { className: 'dop-rowTitle' },
+                h('span', { className: 'dop-rowName' }, isAll ? t('allModels') : (specs?.name ?? model)),
+                isAll ? tag(t('tagWildcard')) : null,
+                model.startsWith('~') ? tag(t('tagAlias')) : null,
+                page.catalog?.emptyReason === 'router' ? tag(t('tagRouter')) : null),
+              isAll ? h('p', { className: 'dop-meta' }, t('allModelsMeta')) : h('span', { className: 'dop-code' }, model),
+              facts === '' ? null : h('p', { className: 'dop-hint' }, facts))
+          return h('div', { className: 'dop-card' },
+            h('div', { className: 'dop-rowHead' },
+              body,
+              h('button', { type: 'button', className: 'dop-compact', disabled: page.busy, onClick: openPicker },
+                model === '' ? t('pickModel') : t('changeModel'))))
+        }
+
+        /**
+         * 渲染已选供应商标签，每项可单独移除
+         * @returns {unknown} 标签行或 null
+         */
+        const renderSelectedTags = () => {
+          if (providerTags.length === 0) return null
+          return h('div', { className: 'dop-tags' },
+            providerTags.map(slug => h('span', {
+              key: slug,
+              className: `dop-removable${PROVIDER_SLUG.test(slug) && knownSlugs.includes(slug) ? '' : ' dop-removableCode'}`,
+            },
+            slug,
             h('button', {
-              type: 'button', className: 'dop-pinRemove', disabled: busy,
-              'aria-label': `${t('remove')} ${slug}`, title: t('remove'),
+              type: 'button', className: 'dop-tagButton', disabled: page.busy,
+              'aria-label': `${t('remove')} ${slug}`,
               onClick: () => { toggleProvider(slug) },
-            }, '✕'),
-            h('div', { className: 'dop-pinMain' },
-              h('div', { className: 'dop-pinTop' },
-                h('span', { className: 'dop-pinName', title: name }, name),
-                h('span', { className: 'dop-pinPrice' },
-                  known ? `$${priceText(row.promptPerMillion)} / $${priceText(row.completionPerMillion)}` : t('unknownValue'))),
-              h('div', { className: 'dop-pinMeta', title: meta }, meta),
-              known ? null : h('p', { className: 'dop-hint dop-pinWarn' }, t('notInCatalogHint'))))
+            }, '×'))))
         }
 
-        /* 侧栏一条候选：勾选即指定；副行给 slug、精度与上下文 */
-        const renderRailRow = (row) => {
-          const checked = selected.includes(row.tag)
-          const meta = `${row.tag} · ${t('colQuant')} ${quantizationText(row)} · ${t('colContext')} ${compactToken(row.contextLength)}${row.degraded === true ? ` · ${t('degradedTag')}` : ''}`
-          return h('label', { className: 'dop-railRow', key: row.tag, 'data-checked': checked ? 'true' : 'false' },
-            h('input', { type: 'checkbox', checked, disabled: busy, onChange: () => { toggleProvider(row.tag) } }),
-            h('span', { className: 'dop-railMain' },
-              h('span', { className: 'dop-railTop' },
-                h('span', { className: 'dop-railName', title: row.providerName === '' ? row.tag : row.providerName },
-                  row.providerName === '' ? row.tag : row.providerName),
-                h('span', { className: 'dop-railPrice' }, `${priceText(row.promptPerMillion)} / ${priceText(row.completionPerMillion)}`)),
-              h('span', { className: 'dop-railMeta', title: meta }, meta)))
+        /**
+         * 渲染供应商表格的一行，勾选即加入草稿
+         * @param {Record<string, unknown>} row 供应商行，来自 providers RPC
+         * @returns {unknown} 表格行节点
+         */
+        const renderProviderRow = (row) => {
+          const checked = providerTags.includes(row.tag)
+          const facts = [
+            row.tag,
+            `${t('precision')} ${quantizationText(row, t('unknownValue'))}`,
+            `${t('context')} ${compactToken(row.contextLength)}`,
+          ].join(' · ')
+          const tone = uptimeTone(row.uptimeLast30m)
+          return h('label', { key: row.tag, className: 'dop-row', 'data-selected': checked ? 'true' : 'false' },
+            h('input', { type: 'checkbox', checked, disabled: page.busy, onChange: () => { toggleProvider(row.tag) } }),
+            h('span', { className: 'dop-rowMain' },
+              h('span', { className: 'dop-rowTitle' },
+                h('span', { className: 'dop-rowName' }, row.providerName ? row.providerName : row.tag),
+                row.degraded === true ? tag(t('tagDegraded'), 'warn') : null),
+              h('span', { className: 'dop-code' }, facts)),
+            h('span', { className: 'dop-num' }, priceText(row.promptPerMillion)),
+            h('span', { className: 'dop-num dop-colOut' }, priceText(row.completionPerMillion)),
+            h('span', { className: 'dop-uptime dop-colUptime' },
+              tone === 'none' ? null : h('span', { className: 'dop-dot', 'data-tone': tone }),
+              typeof row.uptimeLast30m === 'number' ? `${row.uptimeLast30m.toFixed(1)}%` : t('unknownValue')))
         }
 
-        /* 侧栏：筛选 + 候选；清单的加载/失败/别名状态都收在这一栏，主线不被阻塞 */
-        const renderRail = () => {
-          const query = providerFilter.trim().toLowerCase()
-          const matches = providerRows.filter(row => query === ''
-            || String(row.providerName).toLowerCase().includes(query)
-            || String(row.tag).toLowerCase().includes(query))
-          let body = null
-          if (scope === 'all') {
-            body = h('div', { className: 'dop-slot' }, t('scopeAllHint'))
-          } else if (catalogPhase === 'loading') {
-            body = h('div', { className: 'dop-stack', 'aria-busy': 'true' },
-              h('div', { className: 'dop-railSkeleton' },
-                h('span', { className: 'dop-skeletonBar', style: { width: '92%' } }),
-                h('span', { className: 'dop-skeletonBar', style: { width: '78%' } }),
-                h('span', { className: 'dop-skeletonBar', style: { width: '86%' } }),
-                h('span', { className: 'dop-skeletonBar', style: { width: '70%' } })),
-              h('p', { className: 'dop-hint' }, t('listLoading')))
-          } else if (catalogPhase === 'error') {
-            body = h('div', { className: 'dop-slot' },
-              h('div', { className: 'dop-slotTitle' }, t('listErrorTitle')),
-              h('p', { className: 'dop-alert', role: 'alert' }, catalogError ?? ''),
-              h('p', { className: 'dop-hint' }, t('listErrorHint')),
-              h('button', {
-                type: 'button', className: 'dop-button', disabled: busy, style: { marginTop: '10px' },
-                onClick: () => { void loadProviders(model) },
-              }, t('retry')))
-          } else if (catalogPhase !== 'ready') {
-            body = h('div', { className: 'dop-slot' }, t('listIdle'))
-          } else if (providerRows.length === 0) {
-            const isAlias = emptyReason === 'alias' || modelIsAlias
-            body = isAlias || emptyReason === 'router'
-              ? h('div', { className: 'dop-stack' },
-                h('div', { className: 'dop-bannerTitle' }, t('aliasTitle')),
-                h('p', { className: 'dop-hint' }, isAlias ? t('aliasTextAlias') : t('aliasTextRouter')),
-                h('button', { type: 'button', className: 'dop-button', onClick: openPicker }, t('pickConcrete')))
-              : h('div', { className: 'dop-slot' },
-                h('div', { className: 'dop-slotTitle' }, t('listEmptyTitle')),
-                h('div', null, t('listEmptyHint')))
-          } else if (matches.length === 0) {
-            body = h('div', { className: 'dop-slot' }, t('listFilteredEmpty'))
-          } else {
-            body = h('div', { className: 'dop-railList' }, matches.map(renderRailRow))
+        /**
+         * 渲染供应商表格，仅在有清单时出现
+         * @returns {unknown} 表格节点
+         */
+        const renderProviderTable = () => h('div', { className: 'dop-table' },
+          h('div', { className: 'dop-tableHead' },
+            h('span', { className: 'dop-meta' }, `${providerRows.length}${t('servingSuffix')}`),
+            h('span', { className: 'dop-spacer' }),
+            h('span', { className: 'dop-tag dop-tagMuted' }, t('sortInput'))),
+          h('div', { className: 'dop-columns' },
+            h('span', null, ''),
+            h('span', null, t('tableProvider')),
+            h('span', { style: { textAlign: 'right' } }, t('tableInput')),
+            h('span', { className: 'dop-colOut', style: { textAlign: 'right' } }, t('tableOutput')),
+            h('span', { className: 'dop-colUptime', style: { textAlign: 'right' } }, t('tableUptime'))),
+          providerRows.map(renderProviderRow))
+
+        /**
+         * 渲染清单不可用时的占位块：加载 / 失败 / 别名 / 路由 / 空清单 / 通配
+         * @returns {unknown} 占位块
+         */
+        const renderCatalogState = () => {
+          const isAll = ruleKeyOf(page.draft.model) === ALL_MODELS
+          if (page.draft.model === '') return h('div', { className: 'dop-empty' }, t('pickModelFirst'))
+          if (isAll) {
+            return h('div', { className: 'dop-inset' },
+              h('span', { className: 'dop-insetTitle' }, t('allScopeTitle')),
+              h('p', { className: 'dop-hint' }, t('allScopeText')))
           }
-          return h('aside', { className: 'dop-rail', 'aria-label': t('railTitle') },
-            h('div', { className: 'dop-railHead' },
-              h('h3', { className: 'dop-railTitle' }, t('railTitle')),
-              scope === 'all' || catalogPhase !== 'ready'
-                ? null
-                : h('span', { className: 'dop-count' }, `${providerRows.length}${t('countSuffix')}`)),
-            h('input', {
-              className: 'dop-input', value: providerFilter, spellCheck: false,
-              placeholder: t('providerFilter'), 'aria-label': t('providerFilter'),
-              disabled: busy || scope === 'all' || catalogPhase !== 'ready',
-              onChange: event => { setProviderFilter(event.target.value) },
-            }),
-            h('p', { className: 'dop-hint' }, t('railSortHint')),
-            body)
+          if (page.catalogPhase === 'loading') return h('p', { className: 'dop-meta', 'aria-busy': 'true' }, t('catalogLoading'))
+          if (page.catalogPhase === 'error') {
+            return h('div', { className: 'dop-inset' },
+              h('span', { className: 'dop-insetTitle' }, t('catalogErrorTitle')),
+              h('span', { className: 'dop-code' }, page.catalogError ?? ''),
+              h('p', { className: 'dop-hint' }, t('catalogErrorHint')),
+              h('button', {
+                type: 'button', className: 'dop-compact',
+                style: { alignSelf: 'flex-start', marginTop: '4px' },
+                disabled: page.busy,
+                onClick: () => { void loadProviders(page.draft.model) },
+              }, t('retry')))
+          }
+          if (page.catalogPhase !== 'ready') return null
+          const reason = page.catalog?.emptyReason
+          if (reason === 'alias' || page.draft.model.startsWith('~')) {
+            return h('div', { className: 'dop-inset' },
+              h('span', { className: 'dop-insetTitle' }, t('aliasTitle')),
+              h('p', { className: 'dop-hint' }, t('aliasText')),
+              h('button', {
+                type: 'button', className: 'dop-compact',
+                style: { alignSelf: 'flex-start', marginTop: '4px' },
+                disabled: page.busy, onClick: openPicker,
+              }, t('pickConcrete')))
+          }
+          if (reason === 'router') {
+            return h('div', { className: 'dop-inset' },
+              h('span', { className: 'dop-insetTitle' }, t('routerTitle')),
+              h('p', { className: 'dop-hint' }, t('routerText')),
+              h('button', {
+                type: 'button', className: 'dop-compact',
+                style: { alignSelf: 'flex-start', marginTop: '4px' },
+                disabled: page.busy, onClick: openPicker,
+              }, t('pickConcrete')))
+          }
+          return h('div', { className: 'dop-empty' }, t('noProviders'))
         }
 
-        /* 工作面：左主线（手填 + 已指定），右侧栏（在线挑选） */
-        const renderWork = () => {
-          const totalText = scope === 'all' || catalogPhase !== 'ready'
-            ? `${t('selectedPrefix')}${selected.length}`
-            : `${t('selectedPrefix')}${selected.length}${t('ofTotalPrefix')}${providerRows.length}${t('countSuffix')}`
-          return h('div', { className: 'dop-region' },
-            h('div', { className: 'dop-work' },
-              h('div', { className: 'dop-main' },
-                h('div', { className: 'dop-mainHead' },
-                  h('h3', { className: 'dop-blockTitle' }, t('providersLabel')),
-                  h('span', { className: 'dop-count' }, totalText),
-                  h('span', { className: 'dop-spacer' }),
-                  h('button', {
-                    type: 'button', className: 'dop-link', disabled: busy || selected.length === 0,
-                    onClick: () => { setSelected([]); markDirty() },
-                  }, t('clearSelection'))),
-                h('div', { className: 'dop-field' },
-                  h('label', { className: 'dop-label', htmlFor: 'dop-manual' }, t('manualLabel')),
-                  h('div', { className: 'dop-manualRow' },
-                    h('input', {
-                      id: 'dop-manual', className: 'dop-input', value: manualInput, spellCheck: false,
-                      placeholder: t('manualPlaceholder'),
-                      disabled: busy || phase !== 'ready',
-                      onChange: event => { setManualInput(event.target.value); setManualError(null) },
-                      onKeyDown: event => {
-                        if (event.key === 'Enter') { event.preventDefault(); addManualProviders() }
-                      },
-                    }),
-                    h('button', {
-                      type: 'button', className: 'dop-button',
-                      disabled: busy || manualInput.trim() === '',
-                      onClick: addManualProviders,
-                    }, t('add'))),
-                  manualError === null
-                    ? h('p', { className: 'dop-hint' }, t('manualHint'))
-                    : h('p', { className: 'dop-alert', role: 'alert' }, manualError)),
-                h('div', { className: 'dop-subhead' },
-                  h('span', { className: 'dop-label' }, t('pinnedLabel')),
-                  h('span', { className: 'dop-count' }, String(selected.length))),
-                selected.length === 0
-                  ? h('div', { className: 'dop-empty' },
-                    h('div', { className: 'dop-slotTitle' }, t('pinnedEmptyTitle')),
-                    h('p', { className: 'dop-hint' }, t('pinnedEmptyHint')))
-                  : h('div', { className: 'dop-pins' }, selected.map(renderPinnedRow))),
-              renderRail()))
-        }
-
-        const canSave = !busy && phase === 'ready' && selected.length > 0
-          && (scope === 'all' || modelId !== '')
-        const statusText = notice !== null
-          ? notice.text
-          : dirty ? t('dirtyNotice') : ''
-        const showOnboarding = savedRules.length === 0 && !pickerOpen
-
-        return h('section', { className: 'dop' },
-          h('style', null, CSS),
-          h('header', { className: 'dop-head' },
-            h('h2', { className: 'dop-title' }, t('title')),
-            h('p', { className: 'dop-sub' }, t('subtitle'))),
-
-          /* 对象条 */
-          h('div', { className: 'dop-object' },
-            h('div', { className: 'dop-objectMain' },
-              h('div', { className: 'dop-objectLine' },
-                h('span', { className: 'dop-objectName' }, objectName),
-                modelIsAlias ? h('span', { className: 'dop-tag' }, t('badgeAlias')) : null,
-                emptyReason === 'router' ? h('span', { className: 'dop-tag' }, t('badgeRouter')) : null),
-              h('div', { className: 'dop-objectId' }, modelId === '' ? '—' : modelId),
-              objectSpecs === '' ? null : h('div', { className: 'dop-objectSpecs' }, objectSpecs)),
-            h('button', {
-              type: 'button', className: 'dop-button',
-              onClick: () => { if (pickerOpen) setPickerOpen(false); else openPicker() },
-            }, pickerOpen ? t('collapse') : t('changeModel'))),
-
-          /* 更换模型面板 */
-          pickerOpen
-            ? h('div', { className: 'dop-picker' },
-              h('div', { className: 'dop-toolbar' },
+        /**
+         * 渲染供应商区块：计数、已选标签、表格或占位、手填入口
+         * @returns {unknown} 区块节点
+         */
+        const renderProviderSection = () => {
+          const ready = page.catalogPhase === 'ready' && providerRows.length > 0
+          const count = ready
+            ? `${t('selectedPrefix')}${providerTags.length}${t('ofTotalPrefix')}${providerRows.length}${t('countSuffix')}`
+            : `${t('selectedPrefix')}${providerTags.length}${t('countSuffix')}`
+          return h('div', { className: 'dop-section' },
+            h('div', { className: 'dop-sectionHead' },
+              h('h2', { className: 'dop-sectionTitle' }, t('sectionProviders')),
+              h('span', { className: 'dop-count' }, count),
+              h('span', { className: 'dop-spacer' }),
+              h('button', {
+                type: 'button', className: 'dop-compact', disabled: page.busy || providerTags.length === 0,
+                onClick: clearProviders,
+              }, t('clear'))),
+            renderSelectedTags(),
+            ready ? renderProviderTable() : renderCatalogState(),
+            unknownSlugs.length === 0 ? null : h('p', { className: 'dop-hint' }, `${t('notInCatalog')}：${unknownSlugs.join('、')} · ${t('notInCatalogHint')}`),
+            h('div', { className: 'dop-field' },
+              h('div', { className: 'dop-inline' },
                 h('input', {
-                  className: 'dop-input', value: modelFilter, spellCheck: false, autoFocus: true,
-                  placeholder: t('pickerFilter'), 'aria-label': t('pickerFilter'),
-                  onChange: event => { setModelFilter(event.target.value) },
-                })),
-              renderPicker(),
-              h('details', { className: 'dop-advanced' },
-                h('summary', null, t('pickerAdvanced')),
-                h('div', { className: 'dop-toolbar' },
-                  h('input', {
-                    className: 'dop-input', value: manualModel, spellCheck: false,
-                    placeholder: t('pickerAdvancedPlaceholder'), 'aria-label': t('pickerAdvanced'),
-                    disabled: busy,
-                    onChange: event => { setManualModel(event.target.value) },
-                    onKeyDown: event => { if (event.key === 'Enter' && manualModel.trim() !== '') { setManualModel(''); chooseModel(manualModel) } },
-                  }),
-                  h('button', {
-                    type: 'button', className: 'dop-button',
-                    disabled: busy || manualModel.trim() === '',
-                    onClick: () => { const value = manualModel; setManualModel(''); chooseModel(value) },
-                  }, t('load'))),
-                h('p', { className: 'dop-hint' }, t('pickerAdvancedHint'))))
+                  className: 'dop-input', value: page.manualInput, spellCheck: false,
+                  placeholder: t('manualPlaceholder'), 'aria-label': t('manualPlaceholder'),
+                  disabled: page.busy || page.phase !== 'ready',
+                  onChange: event => { patch({ manualInput: event.target.value, manualError: null }) },
+                  onKeyDown: event => {
+                    if (event.key !== 'Enter') return
+                    event.preventDefault()
+                    addManualProviders()
+                  },
+                }),
+                h('button', {
+                  type: 'button', className: 'dop-compact',
+                  disabled: page.busy || page.manualInput.trim() === '',
+                  onClick: addManualProviders,
+                }, t('add'))),
+              page.manualError === null
+                ? h('p', { className: 'dop-hint' }, t('manualHint'))
+                : h('p', { className: 'dop-status', 'data-tone': 'error', role: 'alert' }, page.manualError)))
+        }
+
+        /**
+         * 渲染“规则行为”区块：允许回退开关
+         * @returns {unknown} 区块节点
+         */
+        const renderBehaviorSection = () => h('div', { className: 'dop-section' },
+          h('h2', { className: 'dop-sectionTitle' }, t('sectionBehavior')),
+          h('div', { className: 'dop-card dop-behavior' },
+            h('div', { className: 'dop-rowMain' },
+              h('span', { className: 'dop-rowName' }, t('allowFallbacks')),
+              h('p', { className: 'dop-hint' }, t('allowFallbacksDesc'))),
+            h('button', {
+              type: 'button', className: 'dop-switch', role: 'switch',
+              'aria-checked': page.draft.allowFallbacks ? 'true' : 'false',
+              'aria-label': t('allowFallbacks'),
+              disabled: page.busy,
+              onClick: () => { patch({ draft: { ...page.draft, allowFallbacks: !page.draft.allowFallbacks }, notice: null }) },
+            }, h('span', { className: 'dop-switchTrack' }, h('span', { className: 'dop-switchThumb' })))))
+
+        /**
+         * 渲染编辑页底部：未保存状态、取消、保存
+         * @returns {unknown} 动作行节点
+         */
+        const renderEditorFooter = () => {
+          const canSave = !page.busy && page.phase === 'ready' && providerTags.length > 0 && page.draft.model !== ''
+          const dirty = hasUnsavedChanges(page.snapshot, ruleKeyOf(page.draft.model), page.draft)
+          const status = providerTags.length === 0
+            ? t('atLeastOne')
+            : dirty ? t('unsaved') : ''
+          return h('div', { className: 'dop-footer' },
+            status === ''
+              ? null
+              : h('span', { className: 'dop-footerStatus' },
+                dirty && providerTags.length > 0 ? h('span', { className: 'dop-dirty' }, h('span', { className: 'dop-dot', 'data-tone': 'warn' }), status) : status),
+            h('span', { className: 'dop-spacer' }),
+            h('button', { type: 'button', className: 'dop-secondary', disabled: page.busy, onClick: showList }, t('cancel')),
+            h('button', {
+              type: 'button', className: 'dop-primary', disabled: !canSave, onClick: () => { void saveDraft() },
+            }, page.busy ? t('saving') : t('save')))
+        }
+
+        /**
+         * 渲染删除区：说明代价，并需要二次确认
+         * @returns {unknown} 删除区节点
+         */
+        const renderDangerZone = () => {
+          const stored = findRule(page.snapshot?.rules, ruleKeyOf(page.draft.model))
+          if (stored === undefined) return null
+          return h('div', { className: 'dop-danger' },
+            h('span', { className: 'dop-footerStatus' }, t('deleteHint')),
+            h('span', { className: 'dop-spacer' }),
+            page.confirmDelete
+              ? h('span', { className: 'dop-actions' },
+                h('button', {
+                  type: 'button', className: 'dop-dangerButton', disabled: page.busy,
+                  onClick: () => { void deleteRule(stored.key) },
+                }, t('confirmDelete')),
+                h('button', {
+                  type: 'button', className: 'dop-secondary', disabled: page.busy,
+                  onClick: () => { patch({ confirmDelete: false }) },
+                }, t('cancel')))
+              : h('button', {
+                type: 'button', className: 'dop-dangerButton', disabled: page.busy,
+                onClick: () => { patch({ confirmDelete: true }) },
+              }, t('deleteRule')))
+        }
+
+        /**
+         * 渲染编辑视图：模型、供应商、行为、动作与删除区
+         * @returns {unknown} 视图节点
+         */
+        const renderEditorPage = () => h('section', { className: 'dop' },
+          h('style', null, CSS),
+          h('button', { type: 'button', className: 'dop-crumb', onClick: showList }, backIcon(), t('backToList')),
+          h('h1', { className: 'dop-pageTitle' }, t('editorTitle')),
+          h('p', { className: 'dop-pageIntro' }, t('editorIntro')),
+          renderNotice(),
+          h('div', { className: 'dop-section' },
+            h('h2', { className: 'dop-sectionTitle' }, t('sectionModel')),
+            renderModelCard()),
+          renderProviderSection(),
+          renderBehaviorSection(),
+          renderEditorFooter(),
+          renderDangerZone())
+
+        /**
+         * 渲染选择模型的搜索结果，含通配项
+         * @returns {unknown} 列表节点
+         */
+        const renderPickerRows = () => {
+          const shown = pickerRows.slice(0, MODEL_LIST_LIMIT)
+          return h('div', { className: 'dop-pick' },
+            h('button', {
+              type: 'button', className: 'dop-pickRow', 'data-current': ruleKeyOf(page.draft.model) === ALL_MODELS ? 'true' : 'false',
+              onClick: () => { chooseModel(ALL_MODELS) },
+            },
+            h('span', { className: 'dop-pickMain' },
+              h('span', { className: 'dop-pickTop' },
+                h('span', { className: 'dop-pickName' }, t('allModels')),
+                tag(t('tagWildcard'))),
+              h('span', { className: 'dop-code' }, t('pickerAllDesc')))),
+            shown.map(row => h('button', {
+              key: row.id,
+              type: 'button', className: 'dop-pickRow',
+              'data-current': row.id === page.draft.model ? 'true' : 'false',
+              onClick: () => { chooseModel(row.id) },
+            },
+            h('span', { className: 'dop-pickMain' },
+              h('span', { className: 'dop-pickTop' },
+                h('span', { className: 'dop-pickName' }, row.name === '' ? row.id : row.name),
+                row.alias === true ? tag(t('tagAlias')) : null,
+                row.router === true ? tag(t('tagRouter')) : null,
+                h('span', { className: 'dop-pickPrice' },
+                  `${priceText(row.promptPerMillion)} / ${priceText(row.completionPerMillion)}`)),
+              h('span', { className: 'dop-code' },
+                `${row.id} · ${t('context')} ${tokenText(row.contextWindow)}`)))))
+        }
+
+        /**
+         * 渲染选择模型视图：搜索、通配项、搜索结果、手动输入
+         * @returns {unknown} 视图节点
+         */
+        const renderPickerPage = () => h('section', { className: 'dop' },
+          h('style', null, CSS),
+          h('button', { type: 'button', className: 'dop-crumb', onClick: () => { patch({ view: 'editor' }) } }, backIcon(), t('editorTitle')),
+          h('h1', { className: 'dop-pageTitle' }, t('pickerTitle')),
+          h('p', { className: 'dop-pageIntro' }, t('pickerIntro')),
+          h('input', {
+            className: 'dop-input', value: page.modelFilter, spellCheck: false, autoFocus: true,
+            placeholder: t('searchModels'), 'aria-label': t('searchModels'),
+            onChange: event => { patch({ modelFilter: event.target.value }) },
+          }),
+          page.modelsPhase === 'loading' ? h('p', { className: 'dop-meta', 'aria-busy': 'true' }, t('modelsLoading')) : null,
+          page.modelsPhase === 'error'
+            ? h('div', { className: 'dop-inset' },
+              h('span', { className: 'dop-insetTitle' }, `${t('modelsErrorPrefix')}${page.modelsError ?? ''}`),
+              h('button', {
+                type: 'button', className: 'dop-compact', style: { alignSelf: 'flex-start', marginTop: '4px' },
+                onClick: () => { void loadModels() },
+              }, t('retry')))
             : null,
-
-          /* 首次引导 */
-          showOnboarding
-            ? h('div', { className: 'dop-checklist' },
-              h('span', { 'data-done': modelId !== '' ? 'true' : 'false' }, t('onboardStep1')),
-              h('span', { 'data-done': selected.length > 0 ? 'true' : 'false' }, t('onboardStep2')),
-              h('span', null, t('onboardStep3')))
+          page.modelsPhase === 'ready' ? (pickerRows.length === 0 ? h('div', { className: 'dop-empty' }, t('modelsEmpty')) : renderPickerRows()) : null,
+          page.modelsPhase === 'ready'
+            ? h('p', { className: 'dop-hint' },
+              `${t('modelsMatchPrefix')}${pickerRows.length}${t('modelsTotalPrefix')}${page.models?.length ?? 0}${t('modelsCountSuffix')}`,
+              pickerRows.length > MODEL_LIST_LIMIT ? ` · ${t('modelsTruncated')}` : '')
             : null,
+          h('div', { className: 'dop-field' },
+            h('span', { className: 'dop-label' }, t('manualModelLabel')),
+            h('div', { className: 'dop-inline' },
+              h('input', {
+                className: 'dop-input', value: page.manualModel, spellCheck: false,
+                placeholder: t('manualModelPlaceholder'), 'aria-label': t('manualModelLabel'),
+                onChange: event => { patch({ manualModel: event.target.value }) },
+                onKeyDown: event => {
+                  if (event.key !== 'Enter' || page.manualModel.trim() === '') return
+                  event.preventDefault()
+                  chooseModel(modelIdFromInput(page.manualModel))
+                  patch({ manualModel: '' })
+                },
+              }),
+              h('button', {
+                type: 'button', className: 'dop-compact', disabled: page.manualModel.trim() === '',
+                onClick: () => { chooseModel(modelIdFromInput(page.manualModel)); patch({ manualModel: '' }) },
+              }, t('load'))),
+            h('p', { className: 'dop-hint' }, t('manualModelHint'))))
 
-          /* 工作面：左侧主线（手填 + 已指定），右侧栏（在线挑选） */
-          renderWork(),
-
-          /* 已保存的指定 */
-          h('details', { className: 'dop-sub' },
-            h('summary', null, `${t('savedRulesLabel')}（${savedRules.length}）`),
-            savedRules.length === 0
-              ? h('p', { className: 'dop-fileline' }, t('savedRulesEmpty'))
-              : savedRules.map(([key, rule]) => h('div', { className: 'dop-savedRow', key },
-                h('span', { className: 'dop-savedModel', title: key }, key === ALL_MODELS ? t('savedAll') : key),
-                h('span', { className: 'dop-savedMeta' }, `${(rule.only ?? []).length}${t('savedProviderCountSuffix')}`),
-                h('span', { className: 'dop-savedMeta' }, rule.allowFallbacks === true ? t('savedFallback') : t('savedNoFallback')),
-                h('button', {
-                  type: 'button', className: 'dop-link', disabled: busy,
-                  onClick: () => { void clearRule(key) },
-                }, t('delete'))))),
-
-          /* 配置文件位置 */
-          h('details', { className: 'dop-sub' },
-            h('summary', null, t('configLocation')),
-            h('p', { className: 'dop-fileline' }, state?.policyFile ?? '')),
-
-          /* 吸底操作条 */
-          h('div', { className: 'dop-actionbar' },
-            confirmRemove
-              ? [
-                h('span', { key: 'confirm', className: 'dop-status', role: 'alert' },
-                  `${t('confirmClearPrefix')}${storedRule?.storedKey === ALL_MODELS ? t('savedAll') : (storedRule?.storedKey ?? currentKey)}${t('confirmClearSuffix')}`),
-                h('span', { key: 'spacer', className: 'dop-spacer' }),
-                h('button', {
-                  key: 'cancel', type: 'button', className: 'dop-button', disabled: busy,
-                  onClick: () => { setConfirmRemove(false) },
-                }, t('cancel')),
-                h('button', {
-                  key: 'confirmYes', type: 'button', className: 'dop-primary dop-primaryDanger', disabled: busy,
-                  onClick: () => { void clearRule(storedRule?.storedKey ?? currentKey) },
-                }, t('confirmYes')),
-              ]
-              : [
-                h('button', {
-                  key: 'fallbacks', type: 'button', className: 'dop-switch', role: 'switch',
-                  'aria-checked': allowFallbacks ? 'true' : 'false',
-                  disabled: busy,
-                  onClick: () => { setAllowFallbacks(value => !value); markDirty() },
-                }, h('span', { className: 'dop-switchTrack' }, h('span', { className: 'dop-switchThumb' })), t('fallbacksLabel')),
-                h('span', { key: 'scope', className: 'dop-seg', role: 'group', 'aria-label': t('scopeLabel') },
-                  h('button', {
-                    type: 'button', 'aria-pressed': scope === 'model' ? 'true' : 'false',
-                    disabled: busy, onClick: () => { changeScope('model') },
-                  }, t('scopeModel')),
-                  h('button', {
-                    type: 'button', 'aria-pressed': scope === 'all' ? 'true' : 'false',
-                    disabled: busy, onClick: () => { changeScope('all') },
-                  }, t('scopeAll'))),
-                h('button', {
-                  key: 'clear', type: 'button', className: 'dop-link dop-linkDanger',
-                  disabled: busy || !hasRule,
-                  onClick: () => { setConfirmRemove(true); setNotice(null) },
-                }, t('clearPin')),
-                h('span', { key: 'spacer', className: 'dop-spacer' }),
-                h('p', {
-                  key: 'status', className: 'dop-status', role: 'status', 'aria-live': 'polite',
-                  'data-tone': notice?.tone,
-                }, statusText),
-                h('button', {
-                  key: 'save', type: 'button', className: 'dop-primary', disabled: !canSave,
-                  onClick: () => { void save() },
-                }, busy ? t('saving') : t('save')),
-              ]))
+        if (page.view === 'picker') return renderPickerPage()
+        if (page.view === 'editor') return renderEditorPage()
+        return renderListPage()
       }
     }
 

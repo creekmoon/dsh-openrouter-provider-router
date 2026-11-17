@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>别名模型</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--canvas)}
+:root{
+  --canvas:#eceef1;--paper:#ffffff;--module:#f5f6f7;--selected:#f5f6f7;--hover:rgba(38,49,72,.06);
+  --line1:rgba(0,0,0,.04);--line2:rgba(0,0,0,.10);--line3:rgba(0,0,0,.12);--line4:rgba(0,0,0,.16);
+  --ink1:#0f1115;--ink2:#61666b;--ink3:#81858c;--ink4:#adb2b8;
+  --primary:#0f1115;--business:#4174e6;--success:#22c55e;--warn:#dd8629;--error:#ec1313;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Helvetica Neue',Helvetica,Arial,sans-serif;
+  --code:'SF Mono','JetBrains Mono','Fira Code',Consolas,'Liberation Mono',Menlo,Courier,'PingFang SC','Microsoft YaHei';
+  --panel-shadow:0 0 0 0.5px var(--line4),0 3px 8px 0 rgba(0,0,0,.04),0 0 20px 0 rgba(0,0,0,.05);
+}
+a{color:inherit;text-decoration:none}
+a:hover{color:var(--ink1)}
+input::placeholder{color:var(--ink4)}
+</style>
+</helmet>
+<div style="width:612px;height:780px;box-sizing:border-box;padding:24px;background:var(--paper);border-radius:28px;box-shadow:var(--panel-shadow);font-family:var(--sans);color:var(--ink1)">
+  <div style="display:flex;flex-direction:column;max-width:720px">
+    <a href="Main.dc.html" style="align-self:flex-start;display:inline-flex;align-items:center;gap:6px;height:18px;font-size:12.5px;line-height:18px;color:var(--ink3)">
+      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2L3 6l4 4"/></svg>
+      供应商路由器
+    </a>
+
+    <h1 style="margin:20px 0 0;font-size:20px;line-height:28px;font-weight:500">指定供应商</h1>
+    <p style="margin:8px 0 0;font-size:14px;line-height:22px;color:var(--ink2)">这个别名会把请求转给同家族最新的具体模型。</p>
+
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:32px">
+      <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:500">模型</h2>
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:0.5px solid var(--line4);border-radius:20px;background:var(--paper)">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:14px;line-height:22px;font-weight:500">DeepSeek Flash Latest</span>
+            <span style="flex:none;padding:1px 6px;border:0.5px solid var(--line3);border-radius:4px;font-size:11px;line-height:16px;color:var(--ink2)">Latest 别名</span>
+          </span>
+          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--code);font-size:12px;line-height:18px;color:var(--ink3)">~deepseek/deepseek-flash-latest</span>
+          <span style="font-size:12px;line-height:18px;color:var(--ink3)">始终指向 DeepSeek Flash 家族当前最新的具体模型</span>
+        </div>
+        <a href="Picker.dc.html" style="flex:none;display:inline-flex;align-items:center;justify-content:center;height:28px;padding:0 10px;border:0.5px solid var(--line3);border-radius:8px;background:transparent;font-size:12px;line-height:18px;color:var(--ink1)">更换</a>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:32px">
+      <div style="display:flex;align-items:baseline;gap:10px">
+        <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:500">供应商</h2>
+        <span style="font-size:12px;line-height:18px;color:var(--ink2)">已选 0 家</span>
+      </div>
+
+      <div style="padding:14px 16px;border-radius:16px;background:var(--module);display:flex;flex-direction:column;gap:12px">
+        <span style="font-size:14px;line-height:22px;font-weight:500">别名没有固定的供应商清单</span>
+        <p style="margin:0;font-size:12px;line-height:18px;color:var(--ink2)">别名指向「同家族最新的具体模型」，所以清单随之变动。先选一个具体模型，再为它挑供应商，规则才不会失配。</p>
+        <a href="Picker.dc.html" style="align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;height:28px;padding:0 10px;border:0.5px solid var(--line3);border-radius:8px;background:var(--paper);font-size:12px;line-height:18px;color:var(--ink1)">改选具体模型</a>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="text" value="" aria-label="供应商 slug" placeholder="也可以直接填供应商 slug，例如 stepfun/fp8" style="flex:1;min-width:0;box-sizing:border-box;height:32px;padding:0 10px;border:0.5px solid var(--line4);border-radius:12px;background:var(--paper);font-family:var(--sans);font-size:14px;line-height:22px;color:var(--ink1)">
+          <button type="button" style="flex:none;height:28px;padding:0 10px;border:0.5px solid var(--line3);border-radius:8px;background:transparent;font-family:var(--sans);font-size:12px;line-height:18px;color:var(--ink1);cursor:pointer">添加</button>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:18px;color:var(--ink3)">挂在别名上的规则，作用在别名最终解析到的具体模型；填的 slug 是否可用取决于它。</p>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:32px">
+      <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:500">规则行为</h2>
+      <div style="display:flex;align-items:flex-start;gap:16px;padding:12px 14px;border:0.5px solid var(--line4);border-radius:20px;background:var(--paper)">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:14px;line-height:22px;font-weight:500">允许回退</span>
+          <span style="font-size:12px;line-height:18px;color:var(--ink2)">开启后，名单外的供应商仍可接管失败的请求；关闭后只发给上面这几家，可预测但更容易失败。</span>
+        </div>
+        <button type="button" role="switch" aria-checked="false" aria-label="允许回退" style="flex:none;display:inline-flex;align-items:center;height:20px;padding:0;border:none;background:none;cursor:pointer">
+          <span style="position:relative;width:36px;height:20px;border-radius:999px;background:#d4d4d4">
+            <span style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--paper)"></span>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-top:24px">
+      <span style="font-size:12px;line-height:18px;color:var(--ink3)">至少选 1 家供应商才能保存</span>
+      <span style="flex:1"></span>
+      <a href="Main.dc.html" style="display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 14px;border:0.5px solid var(--line3);border-radius:12px;background:transparent;font-size:14px;line-height:22px;color:var(--ink1)">取消</a>
+      <button type="button" disabled style="height:36px;padding:0 14px;border:none;border-radius:12px;background:var(--primary);opacity:0.4;font-family:var(--sans);font-size:14px;line-height:22px;color:var(--paper);cursor:default">保存</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":612,"height":780}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {}
+  }
+}
+</script>
+</body>
+</html>

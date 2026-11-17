@@ -10,7 +10,7 @@ const here = fileURLToPath(new URL('.', import.meta.url))
 const scripts = [
   ['Host 半：fetch 注入、RPC、落盘', 'verify-host.mjs'],
   ['客户端：文案键与设计闸门', 'audit-client.mjs'],
-  ['布局几何：564px 内容列两栏', 'check-layout.mjs'],
+  ['布局几何：564px 内容列与表格列宽', 'check-layout.mjs'],
   ['渲染冒烟：状态与结构', 'render-smoke.mjs'],
 ]
 

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>缺失与通配</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--canvas)}
+:root{
+  --canvas:#eceef1;--paper:#ffffff;--module:#f5f6f7;--selected:#f5f6f7;--hover:rgba(38,49,72,.06);
+  --line1:rgba(0,0,0,.04);--line2:rgba(0,0,0,.10);--line3:rgba(0,0,0,.12);--line4:rgba(0,0,0,.16);
+  --ink1:#0f1115;--ink2:#61666b;--ink3:#81858c;--ink4:#adb2b8;
+  --primary:#0f1115;--business:#4174e6;--success:#22c55e;--warn:#dd8629;--error:#ec1313;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Helvetica Neue',Helvetica,Arial,sans-serif;
+  --code:'SF Mono','JetBrains Mono','Fira Code',Consolas,'Liberation Mono',Menlo,Courier,'PingFang SC','Microsoft YaHei';
+  --panel-shadow:0 0 0 0.5px var(--line4),0 3px 8px 0 rgba(0,0,0,.04),0 0 20px 0 rgba(0,0,0,.05);
+}
+a{color:inherit;text-decoration:none}
+a:hover{color:var(--ink1)}
+input::placeholder{color:var(--ink4)}
+</style>
+</helmet>
+<div style="width:612px;height:880px;box-sizing:border-box;padding:24px;background:var(--paper);border-radius:28px;box-shadow:var(--panel-shadow);font-family:var(--sans);color:var(--ink1)">
+  <div style="display:flex;flex-direction:column;max-width:720px">
+    <span style="font-size:12px;line-height:18px;color:var(--ink3)">① 读不到供应商清单</span>
+
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+      <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:500">模型</h2>
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:0.5px solid var(--line4);border-radius:20px;background:var(--paper)">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:14px;line-height:22px;font-weight:500">DeepSeek V4.1 Flash 1017</span>
+          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--code);font-size:12px;line-height:18px;color:var(--ink3)">deepseek/deepseek-v4.1-flash-1017</span>
+        </div>
+        <a href="Picker.dc.html" style="flex:none;display:inline-flex;align-items:center;justify-content:center;height:28px;padding:0 10px;border:0.5px solid var(--line3);border-radius:8px;background:transparent;font-size:12px;line-height:18px;color:var(--ink1)">更换</a>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px">
+      <div style="display:flex;align-items:baseline;gap:10px">
+        <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:500">供应商</h2>
+        <span style="font-size:12px;line-height:18px;color:var(--ink2)">已选 1 家</span>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 4px 0 7px;border:0.5px solid var(--line3);border-radius:4px;font-family:var(--code);font-size:11px;line-height:16px;color:var(--ink2)">
+          stepfun/fp8
+          <button type="button" aria-label="移除 stepfun/fp8" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;padding:0;border:none;border-radius:4px;background:transparent;font-family:var(--sans);font-size:11px;line-height:1;color:var(--ink3);cursor:pointer">×</button>
+        </span>
+      </div>
+
+      <div style="padding:14px 16px;border-radius:16px;background:var(--module);display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:14px;line-height:22px;font-weight:500">读不到这个模型的供应商清单</span>
+        <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--code);font-size:12px;line-height:18px;color:var(--ink3)">GET /api/v1/models/deepseek/deepseek-v4.1-flash-1017/endpoints → 404</span>
+        <span style="font-size:12px;line-height:18px;color:var(--ink2)">手填的 slug 不受影响，保存后仍按你填的生效。</span>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <button type="button" style="height:28px;padding:0 10px;border:0.5px solid var(--line3);border-radius:8px;background:var(--paper);font-family:var(--sans);font-size:12px;line-height:18px;color:var(--ink1);cursor:pointer">重试</button>
+          <span style="font-size:12px;line-height:18px;color:var(--ink3)">60 秒后自动重试</span>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="text" value="" aria-label="供应商 slug" placeholder="直接填供应商 slug，例如 stepfun/fp8" style="flex:1;min-width:0;box-sizing:border-box;height:32px;padding:0 10px;border:0.5px solid var(--line4);border-radius:12px;background:var(--paper);font-family:var(--sans);font-size:14px;line-height:22px;color:var(--ink1)">
+          <button type="button" style="flex:none;height:28px;padding:0 10px;border:0.5px solid var(--line3);border-radius:8px;background:transparent;font-family:var(--sans);font-size:12px;line-height:18px;color:var(--ink1);cursor:pointer">添加</button>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:18px;color:var(--ink3)">清单不可用时不判断拼写：slug 原样保存。</p>
+      </div>
+    </div>
+
+    <div style="margin-top:32px;padding-top:24px;border-top:0.5px solid var(--line2)">
+      <span style="font-size:12px;line-height:18px;color:var(--ink3)">② 作用范围是所有模型</span>
+
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+        <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:500">模型</h2>
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:0.5px solid var(--line4);border-radius:20px;background:var(--paper)">
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+            <span style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:14px;line-height:22px;font-weight:500">所有 OpenRouter 模型</span>
+              <span style="flex:none;padding:1px 6px;border:0.5px solid var(--line3);border-radius:4px;font-size:11px;line-height:16px;color:var(--ink2)">通配</span>
+            </span>
+            <span style="font-size:12px;line-height:18px;color:var(--ink3)">作用于每个 OpenRouter 请求；单独指定的模型优先</span>
+          </div>
+          <a href="Picker.dc.html" style="flex:none;display:inline-flex;align-items:center;justify-content:center;height:28px;padding:0 10px;border:0.5px solid var(--line3);border-radius:8px;background:transparent;font-size:12px;line-height:18px;color:var(--ink1)">更换</a>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px">
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:500">供应商</h2>
+          <span style="font-size:12px;line-height:18px;color:var(--ink2)">已选 2 家</span>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 4px 0 7px;border:0.5px solid var(--line3);border-radius:4px;font-size:11px;line-height:16px;color:var(--ink2)">
+            DeepSeek
+            <button type="button" aria-label="移除 DeepSeek" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;padding:0;border:none;border-radius:4px;background:transparent;font-family:var(--sans);font-size:11px;line-height:1;color:var(--ink3);cursor:pointer">×</button>
+          </span>
+          <span style="display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 4px 0 7px;border:0.5px solid var(--line3);border-radius:4px;font-family:var(--code);font-size:11px;line-height:16px;color:var(--ink2)">
+            novita/fp8
+            <button type="button" aria-label="移除 novita/fp8" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;padding:0;border:none;border-radius:4px;background:transparent;font-family:var(--sans);font-size:11px;line-height:1;color:var(--ink3);cursor:pointer">×</button>
+          </span>
+        </div>
+
+        <div style="padding:14px 16px;border-radius:16px;background:var(--module);display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:14px;line-height:22px;font-weight:500">所有模型没有按模型的候选清单</span>
+          <span style="font-size:12px;line-height:18px;color:var(--ink2)">每个模型能服务的供应商不同，所以这里直接填 slug。填错不会拦住保存，但请求会返回 4xx。</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <input type="text" value="" aria-label="供应商 slug" placeholder="例如 deepseek 或 novita/fp8" style="flex:1;min-width:0;box-sizing:border-box;height:32px;padding:0 10px;border:0.5px solid var(--line4);border-radius:12px;background:var(--paper);font-family:var(--sans);font-size:14px;line-height:22px;color:var(--ink1)">
+            <button type="button" style="flex:none;height:28px;padding:0 10px;border:0.5px solid var(--line3);border-radius:8px;background:var(--paper);font-family:var(--sans);font-size:12px;line-height:18px;color:var(--ink1);cursor:pointer">添加</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":612,"height":880}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {}
+  }
+}
+</script>
+</body>
+</html>

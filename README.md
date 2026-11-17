@@ -1,42 +1,55 @@
-# DSH-OpenRouter-供应商路由器
+# 供应商路由器（DSH-OpenRouter-Provider）
 
-DeepSeek Harness（DSH）插件：在 **设置 → 供应商路由器** 里，把某个 OpenRouter 模型的请求固定到你指定的上游供应商。
+给 DeepSeek Harness 用的插件：在设置里把某个 OpenRouter 模型固定到你指定的几家上游供应商。
 
-OpenRouter 默认会在同一模型的多个供应商之间自己挑、自己回退。同一个模型，不同供应商的价格、精度、上下文和可用性差别很大。这个插件让你把「谁来回这个请求」写死，并把规则落成 `provider.only` + `allow_fallbacks` 注入到请求体。
+OpenRouter 默认会在同一模型的多个供应商之间自己挑、自己回退。同一个模型，不同供应商的价格、精度、上下文和可用性差别很大 —— 这个插件把「谁来回这个请求」写死，落成请求体里的 `provider.only` 与 `allow_fallbacks`。
 
-## 功能
+**安装方式**：克隆本仓库，然后在 **设置 → 插件 → 添加插件** 里选中它。
 
-- **按模型指定供应商**：规则按请求里的 `model` 精确匹配（只忽略 `~` 前缀）；作用范围可选「仅此模型」或「所有 OpenRouter 模型」。
-- **手填为主**：直接填供应商 slug（例如 `stepfun/fp8`），回车即加入；可一次填多个，用逗号、空格或换行分隔。填的 slug 不在该模型的清单里时，行内提示可能有拼写错误。
-- **右侧栏在线挑选**：列出该模型所有可服务的供应商，带输入 / 输出单价（$/1M）、精度、上下文、可用性；勾选即加入。
-- **允许回退**开关：关掉即写 `allow_fallbacks: false`，OpenRouter 不会退到白名单外的供应商。
-- **规则可手改**：保存在 `$DSH_HOME/openrouter-provider.json`，页面底部给出实际路径。
+## 它能做什么
+
+- **按模型指定供应商**：一条规则对应一个模型（或「所有 OpenRouter 模型」），清单页一眼看到每条规则交给了谁、是否允许回退。
+- **像选商品一样挑供应商**：表格按输入价升序，同一行给出输入/输出单价（$/1M）、精度、上下文、可用性（点色 + 百分比），勾选即加入。
+- **没有候选清单也能用**：`~` 别名、`openrouter/auto` 这类路由模型、以及通配规则没有固定供应商清单，直接在表格下方填 slug 即可。
+
+## 它不做什么
+
+- 只改写本机 DSH 发往 `openrouter.ai` 的 `POST /api/v1/chat/completions`；其它域名、其它路由原样放行。
+- 只处理 body 是 JSON 字符串的请求；不代理、不转发、不重试，也不读取你的 OpenRouter 余额。
+- 不替你验证 slug 是否可用：填了该模型不支持的供应商，请求会被 OpenRouter 返回 4xx。
 
 ## 安装
 
-要求 DSH 0.2.x（在 0.2.2-rc.3 上验证）。
+要求 DSH 0.2.x（在 0.2.2-rc.3 上验证），并且已经配好 OpenRouter 渠道与 API Key。
 
 ```bash
 git clone https://gitee.com/creekmoon/dsh-openrouter-provider-router.git
 ```
 
-1. 打开 **设置 → 插件**，选择 **添加插件**（Add plugin），选中克隆下来的目录。
+1. 打开 **设置 → 插件**，点 **添加插件**（Add plugin），选中克隆下来的目录。
 2. 重新打开设置，左侧导航出现 **供应商路由器**。
 
-也可以由 agent 用 `plugin_manager` 安装：`action: install_bundle`，`target` 填本目录的绝对路径。
+也可以让 Agent 代装：`plugin_manager` 的 `install_bundle`，`target` 填该目录的绝对路径，包名是 `@creekmoon/dsh-openrouter-provider`。
 
-## 使用
+## 用起来
 
-1. 顶部对象条显示当前模型，点 **更换模型** 选一个具体模型（目录里约 470 个）。`~` 开头的 Latest 别名与 `openrouter/auto` 这类路由模型没有固定供应商清单。
-2. 在 **供应商 slug** 里填 slug，回车或点 **添加**；也可以在右侧栏勾选。
-3. 需要时打开 **允许回退**，并选择 **作用范围**。
-4. 点 **保存**。
+打开 **设置 → 供应商路由器**，看到的是已经存下来的指定；点末位的 **新建指定**，或某条上的 **编辑**。
 
-> 规则按请求里的 `model` 精确匹配。如果会话默认模型是别名（例如 `~deepseek/deepseek-flash-latest`），而你把规则挂在具体模型上，保存后操作条会提示「已保存但暂时不会生效」。
+![指定清单](docs/screenshots/provider-router-list.png)
 
-## 规则文件
+编辑页先确认模型，再在供应商表格里勾选。勾选的行浅底高亮，已选的供应商会以可移除的标签排在表格上方。
 
-`$DSH_HOME/openrouter-provider.json`：
+![指定供应商](docs/screenshots/provider-router-editor.png)
+
+换模型时第一项是「所有 OpenRouter 模型」（通配，覆盖全部模型），也可以搜索名称/id，或直接粘贴 OpenRouter 模型页地址。
+
+![选择模型](docs/screenshots/provider-router-picker.png)
+
+保存后立即生效，不需要重启 DSH。
+
+## 规则存在哪
+
+`$DSH_HOME/openrouter-provider.json`，Windows 下通常是 `C:\Users\<你>\.dsh\openrouter-provider.json`；清单页底部也会显示实际路径。
 
 ```json
 {
@@ -48,35 +61,25 @@ git clone https://gitee.com/creekmoon/dsh-openrouter-provider-router.git
 }
 ```
 
-- 键是模型 id；`*` 表示所有 OpenRouter 模型。
-- `only` 是白名单，`allowFallbacks` 对应 `provider.allow_fallbacks`。
+- 键是模型 id，`*` 表示所有 OpenRouter 模型；单独指定的模型优先于 `*`。
+- `only` 是供应商白名单，`allowFallbacks` 对应请求体里的 `provider.allow_fallbacks`。
+- 手改这个文件也可以，页面下次打开会读到最新内容。
 
-## 实现方式
+## 不生效时先看这三条
 
-Host 半在进程内包了一层 `globalThis.fetch`：只有当请求是 `POST https://openrouter.ai/api/v1/chat/completions`（含区域域名）、body 是 JSON 字符串、且命中一条规则时，才把 `provider.only` / `provider.allow_fallbacks` 合并进请求体。其它请求原样放行，解析失败也一律退回原请求。规则改动立即生效，不需要重启。
+- **默认模型是别名**：规则按请求里的 `model` 精确匹配（只忽略 `~` 前缀）。会话默认模型是 `~deepseek/deepseek-flash-latest`、而你把规则挂在具体模型上，就不会命中；保存后清单页状态行会明确提示这一点。
+- **请求没走 OpenRouter**：DeepSeek 官方、Kimi 等其它渠道不受影响。
+- **返回 4xx**：这个 slug 不服务该模型，回到编辑页换成表格里勾得到的供应商。
 
-浏览器半注册一个 `settings.section`。两个半通过 `POST /api/openrouter-provider`（DSH 的认证通道，Host/Origin 与登录态由 DSH 先校验）读写状态。
+装完设置里没有出现「供应商路由器」？先关掉设置重新打开；仍然是空的就整页刷新（Ctrl+R），再到 **设置 → 插件** 的插件列表看有没有同步失败，点重试。
 
-## 数据来源
+## 怎么实现的
 
-| 用途 | 来源 | 缓存 |
-|---|---|---|
-| 某模型的供应商清单 | `GET /api/v1/models/<id>/endpoints` | 60 秒 |
-| 模型目录（更换模型面板） | `GET /api/v1/models` | 10 分钟 |
-| 接口不可用时的兜底 | 抓模型页 HTML，解析其中内嵌的 endpoint 数组 | 60 秒 |
+Host 半 `index.js` 在进程内包了一层 `globalThis.fetch`：只有命中规则的 OpenRouter 请求才会被合并进 `provider.only` / `provider.allow_fallbacks`，其余原样放行。浏览器半 `client.js` 注册一个 `settings.section`，两半通过 DSH 的认证通道 `POST /api/openrouter-provider` 读写状态。
 
-## 边界
+供应商清单来自 `GET /api/v1/models/<id>/endpoints`（缓存 60 秒），模型目录来自 `GET /api/v1/models`（缓存 10 分钟）；接口不可用时抓模型页 HTML 兜底。界面尺寸与配色沿用 DSH 官方设置页的令牌与规格。
 
-- 只改本 Harness 发往 `openrouter.ai` 的请求；DeepSeek 官方、Kimi 等其它路由不受影响。
-- 只处理 body 是 JSON 字符串的请求，其它形态原样放行。
-- `~` 别名与路由模型没有固定供应商清单；接口返回空清单时页面给出说明与「选具体模型」入口，不当成加载失败。
-- slug 必须能在该模型上服务，否则 OpenRouter 会返回 4xx。
-- 模型页解析依赖 OpenRouter 当前的 Next.js 负载结构；接口优先，改版只会影响兜底路径。
-- Host 返回的错误文案目前是中文硬编码，英文界面下会中英混排（界面文字本身已双语）。
-
-## 开发
-
-无构建步骤。`index.js` 是 Host 半，`client.js` 是浏览器半，都是纯 ESM，改完在「设置 → 插件」里禁用再启用即可。
+无构建步骤，改完在插件列表里禁用再启用即可。
 
 ```bash
 node test/run.mjs              # 4 个离线检查
@@ -85,41 +88,19 @@ node test/verify-catalog.mjs   # 可选：联网核对真实接口与页面解�
 
 | 检查 | 覆盖内容 |
 |---|---|
-| `test/verify-host.mjs` | fetch 注入、区域域名、非 OpenRouter 主机、非 JSON body、RPC 读写与落盘、`~` 前缀匹配、路径穿越拒绝、卸载还原 |
-| `test/audit-client.mjs` | 中英双语键全解析、设计闸门（无字面色值/阴影/虚线、可按压元素有 `:active`、价格用 `tabular-nums`）、结构断言（手填在前、侧栏在后） |
-| `test/check-layout.mjs` | 564px 内容列下两栏宽度与各列可用宽度 |
-| `test/render-smoke.mjs` | 15 个状态下组件不抛错，结构与文案断言 |
+| `test/verify-host.mjs` | fetch 注入、区域域名、非 OpenRouter 主机、非 JSON body、RPC 读写与落盘、卸载还原 |
+| `test/audit-client.mjs` | 中英双语键全解析、模块 id 与包名一致、官方尺寸闸门 |
+| `test/check-layout.mjs` | 564px 内容列下表格列宽与窄宽断点的可用像素 |
+| `test/render-smoke.mjs` | 17 个状态下三视图不抛错，结构与文案断言 |
 
-`design/wireframe.html` 是灰阶结构线框，右下角可切换演示状态。
+设计稿在 `designs/provider-router-redesign/`（画布，7 块画板：清单、空态、选模型、编辑、别名、窄宽、无清单状态）。
 
-## 目录
+## English
 
-| 路径 | 作用 |
-|---|---|
-| `index.js` | Host：fetch 拦截、策略文件读写、`/api/openrouter-provider` RPC、目录接口与模型页解析 |
-| `client.js` | 浏览器：`settings.section` 里的设置页 |
-| `cordis.patch.yml` | 插入 `openrouter-provider` 行 |
-| `locale/*.json` | 插件列表里的标题与说明 |
-| `icon.svg` | 插件图标 |
-| `design/wireframe.html` | 灰阶结构线框 |
-| `test/` | 离线检查与联网核对 |
+A DeepSeek Harness plugin that pins each OpenRouter model to the upstream providers you choose. Open **Settings → Provider router**: the page lists your pins, **New pin** opens an editor where you pick a model and tick providers in a price-sorted table, then save.
 
-## 发布（维护者）
-
-远端是 `https://gitee.com/creekmoon/dsh-openrouter-provider-router.git`，日常直接：
-
-```bash
-git push
-```
-
-包名目前是 `@creekmoon/dsh-openrouter-provider`（`private: true`，防止误发 npm）。要发到 npm 或改名成自己的域，改 `package.json` 的 `name` 与 `private`，并同步 `cordis.patch.yml` 里的 `name`。
+Install: clone the repo, then **Settings → Plugins → Add plugin** and pick the directory. The Host half wraps `globalThis.fetch`: only `POST https://openrouter.ai/api/v1/chat/completions` requests with a JSON body that match a rule get `provider.only` and `provider.allow_fallbacks`; everything else passes through untouched. Rules live in `$DSH_HOME/openrouter-provider.json`.
 
 ## 许可
 
 MIT，见 [LICENSE](LICENSE)。
-
-## English
-
-A DSH plugin that pins each OpenRouter model to the upstream providers you choose. Open **Settings → Provider router**, type provider slugs (for example `stepfun/fp8`) or tick them in the side rail, then save. The Host half wraps `globalThis.fetch`: only `POST https://openrouter.ai/api/v1/chat/completions` requests with a JSON body that match a rule get `provider.only` and `provider.allow_fallbacks`; everything else passes through untouched.
-
-Install: **Settings → Plugins → Add plugin**, pick this directory. Rules live in `$DSH_HOME/openrouter-provider.json`. Run `node test/run.mjs` for the offline checks; `node test/verify-catalog.mjs` hits the live OpenRouter API. MIT licensed.

@@ -100,6 +100,15 @@ node test/verify-catalog.mjs   # 可选：联网核对真实接口与页面解�
 | `design/wireframe.html` | 灰阶结构线框 |
 | `test/` | 离线检查与联网核对 |
 
+## 发布
+
+```bash
+git remote add origin <你的仓库地址>
+git push -u origin main
+```
+
+包名目前是 `@creekmoon/dsh-openrouter-provider`（`private: true`，防止误发 npm）。要发到 npm 或改名成自己的域，改 `package.json` 的 `name` 与 `private`，并同步 `cordis.patch.yml` 里的 `name`。
+
 ## 许可
 
 MIT，见 [LICENSE](LICENSE)。

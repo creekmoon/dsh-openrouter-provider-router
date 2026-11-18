@@ -33,6 +33,8 @@ Gitee 镜像：`https://gitee.com/creekmoon/dsh-openrouter-provider-router.git`�
 1. 打开 **设置 → 插件**，点 **添加插件**（Add plugin），选中克隆下来的目录。
 2. 重新打开设置，左侧导航出现 **供应商路由器**。
 
+也可以从 npm 装：`npm install @creekmoon/dsh-openrouter-provider-router`，再在 **添加插件** 里选中 `node_modules/@creekmoon/dsh-openrouter-provider-router` 目录。
+
 也可以让 Agent 代装：`plugin_manager` 的 `install_bundle`，`target` 填该目录的绝对路径，包名是 `@creekmoon/dsh-openrouter-provider-router`。
 
 ## 用起来
@@ -105,6 +107,17 @@ node test/verify-catalog.mjs   # 可选：联网核对真实接口与页面解�
 | `test/check-docs.mjs` | 中英双份 README 互链、截图路径、标签词与 `package.json` 关键词一致 |
 
 设计稿在 `designs/provider-router-redesign/`（画布，7 块画板：清单、空态、选模型、编辑、别名、窄宽、无清单状态）。
+
+## 发版
+
+改 `package.json` 的版本号，打 tag 再推：
+
+```bash
+git tag v1.0.1
+git push --tags
+```
+
+`.github/workflows/publish.yml` 会跑离线检查、校验 tag 与版本一致，然后用 GitHub OIDC 可信发布把包推到 npm，仓库里不放任何 npm token。前提是该包在 npm 设置里已配好 GitHub Actions 可信发布（仓库 `creekmoon/dsh-openrouter-provider-router`、工作流 `publish.yml`）。
 
 ## 仓库标签
 

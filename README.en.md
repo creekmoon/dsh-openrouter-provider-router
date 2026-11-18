@@ -33,6 +33,8 @@ Gitee mirror: `https://gitee.com/creekmoon/dsh-openrouter-provider-router.git`; 
 1. Open **Settings → Plugins** and click **Add plugin**; pick the directory you cloned.
 2. Reopen Settings: **Provider router** shows up in the left navigation.
 
+Or install from npm: `npm install @creekmoon/dsh-openrouter-provider-router`, then pick the `node_modules/@creekmoon/dsh-openrouter-provider-router` directory in **Add plugin**.
+
 An agent can install it too: call `plugin_manager` with `install_bundle`, set `target` to that directory's absolute path; the package name is `@creekmoon/dsh-openrouter-provider-router`.
 
 ## Using it
@@ -105,6 +107,17 @@ node test/verify-catalog.mjs   # optional: hit the live API and page parsing
 | `test/check-docs.mjs` | the two READMEs link to each other, screenshot paths exist, tags match the `package.json` keywords |
 
 Designs live in `designs/provider-router-redesign/` (canvas, 7 artboards: list, empty, picker, editor, alias, narrow, no catalog).
+
+## Releasing
+
+Bump the version in `package.json`, tag it, push the tag:
+
+```bash
+git tag v1.0.1
+git push --tags
+```
+
+`.github/workflows/publish.yml` runs the offline checks, verifies the tag matches the version, then publishes to npm through GitHub OIDC trusted publishing — no npm token lives in the repository. It relies on the package's npm settings naming this repository (`creekmoon/dsh-openrouter-provider-router`) and workflow (`publish.yml`) as a trusted publisher.
 
 ## Repository tags
 

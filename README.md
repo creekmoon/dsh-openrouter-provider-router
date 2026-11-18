@@ -33,7 +33,7 @@ Gitee 镜像：`https://gitee.com/creekmoon/dsh-openrouter-provider-router.git`�
 1. 打开 **设置 → 插件**，点 **添加插件**（Add plugin），选中克隆下来的目录。
 2. 重新打开设置，左侧导航出现 **供应商路由器**。
 
-也可以让 Agent 代装：`plugin_manager` 的 `install_bundle`，`target` 填该目录的绝对路径，包名是 `@creekmoon/dsh-openrouter-provider`。
+也可以让 Agent 代装：`plugin_manager` 的 `install_bundle`，`target` 填该目录的绝对路径，包名是 `@creekmoon/dsh-openrouter-provider-router`。
 
 ## 用起来
 

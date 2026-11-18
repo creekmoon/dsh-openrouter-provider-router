@@ -1,5 +1,5 @@
 {
-  "name": "@creekmoon/dsh-openrouter-provider",
+  "name": "@creekmoon/dsh-openrouter-provider-router",
   "version": "1.0.0",
   "type": "module",
   "description": "Pin each OpenRouter model to the providers you choose, from a dedicated Settings page.",

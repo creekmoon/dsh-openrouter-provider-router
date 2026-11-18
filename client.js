@@ -5,7 +5,7 @@
  */
 window.__ModuleLoader__.load({
   // id 必须等于 package.json 的包名：宿主按包名请求浏览器模块，不对上则工厂注册后不挂到该行，插件静默不出现
-  id: '@creekmoon/dsh-openrouter-provider',
+  id: '@creekmoon/dsh-openrouter-provider-router',
   factory(require) {
     const React = require('react')
     const h = React.createElement

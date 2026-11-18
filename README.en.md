@@ -33,7 +33,7 @@ Gitee mirror: `https://gitee.com/creekmoon/dsh-openrouter-provider-router.git`; 
 1. Open **Settings → Plugins** and click **Add plugin**; pick the directory you cloned.
 2. Reopen Settings: **Provider router** shows up in the left navigation.
 
-An agent can install it too: call `plugin_manager` with `install_bundle`, set `target` to that directory's absolute path; the package name is `@creekmoon/dsh-openrouter-provider`.
+An agent can install it too: call `plugin_manager` with `install_bundle`, set `target` to that directory's absolute path; the package name is `@creekmoon/dsh-openrouter-provider-router`.
 
 ## Using it
 

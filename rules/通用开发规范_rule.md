@@ -9,7 +9,7 @@ globs:
 alwaysApply: false
 ---
 
-# 通用开发规范
+# 通用开发规范（General Development Rules）
 
 本指南提炼「DSH 双半插件」在新增能力、改文案、改文档、发版四类场景下的稳定规律与推荐做法，来自本仓库现有代码的实证核查（`client.js` 1409 行 / 54 个函数注释，`index.js` 759 行 / 37 个函数注释，7 个测试文件）。
 

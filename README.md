@@ -6,7 +6,7 @@
 
 OpenRouter 默认会在同一模型的多个供应商之间自己挑、自己回退。同一个模型，不同供应商的价格、精度、上下文和可用性差别很大 —— 这个插件把「谁来回这个请求」写死，落成请求体里的 `provider.only` 与 `allow_fallbacks`。
 
-**安装方式**：克隆本仓库，然后在 **设置 → 插件 → 添加插件** 里选中它。
+**安装方式**：已发布到 npm，在 **插件 → 添加插件** 里填包名 `@creekmoon/dsh-openrouter-provider-router` 即可。
 
 ## 它能做什么
 
@@ -24,16 +24,23 @@ OpenRouter 默认会在同一模型的多个供应商之间自己挑、自己回
 
 要求 DSH 0.2.x（在 0.2.2-rc.3 上验证），并且已经配好 OpenRouter 渠道与 API Key。
 
+### 首选：从 npm 装
+
+包里已经在 npm 上：`@creekmoon/dsh-openrouter-provider-router`。
+
+1. 打开侧边栏的 **插件** 页面，点 **添加插件**（Add plugin）。
+2. 在包名输入框填 `@creekmoon/dsh-openrouter-provider-router`，确认安装。
+3. 装完重新打开设置，左侧导航出现 **供应商路由器**。
+
+也可以让 Agent 代装：`plugin_manager` 的 `install_bundle`，`target` 直接填包名。
+
+### 备选：从源码装（要改代码时）
+
 ```bash
 git clone https://github.com/creekmoon/dsh-openrouter-provider-router.git
 ```
 
-Gitee 镜像：`https://gitee.com/creekmoon/dsh-openrouter-provider-router.git`，克隆后步骤一样。
-
-1. 打开 **设置 → 插件**，点 **添加插件**（Add plugin），选中克隆下来的目录。
-2. 重新打开设置，左侧导航出现 **供应商路由器**。
-
-也可以从 npm 装：`npm install @creekmoon/dsh-openrouter-provider-router`，再在 **添加插件** 里选中 `node_modules/@creekmoon/dsh-openrouter-provider-router` 目录。
+Gitee 镜像：`https://gitee.com/creekmoon/dsh-openrouter-provider-router.git`，克隆后步骤一样。在 **添加插件** 里选这个本地目录即可；本地目录是链接安装，改完代码禁用再启用就能生效。
 
 也可以让 Agent 代装：`plugin_manager` 的 `install_bundle`，`target` 填该目录的绝对路径，包名是 `@creekmoon/dsh-openrouter-provider-router`。
 

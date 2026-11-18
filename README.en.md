@@ -6,7 +6,7 @@ A DeepSeek Harness plugin: pin a given OpenRouter model to the upstream provider
 
 OpenRouter picks among a model's providers on its own, fallbacks included. For the same model those providers differ widely in price, quantization, context and uptime — this plugin writes the choice down and sends it as `provider.only` and `allow_fallbacks` in the request body.
 
-**Install**: clone this repository, then pick it in **Settings → Plugins → Add plugin**.
+**Install**: published on npm — open **Plugins → Add plugin** and enter the package name `@creekmoon/dsh-openrouter-provider-router`.
 
 ## What it does
 
@@ -24,18 +24,23 @@ OpenRouter picks among a model's providers on its own, fallbacks included. For t
 
 Requires DSH 0.2.x (verified on 0.2.2-rc.3) plus a configured OpenRouter channel and API key.
 
+### Recommended: install from npm
+
+The package is on npm as `@creekmoon/dsh-openrouter-provider-router`.
+
+1. Open the **Plugins** page in the sidebar and click **Add plugin**.
+2. Enter the package name `@creekmoon/dsh-openrouter-provider-router` in the package field and confirm.
+3. Reopen Settings: **Provider router** shows up in the left navigation.
+
+An agent can install it too: call `plugin_manager` with `install_bundle` and the package name as `target`.
+
+### Alternative: install from source (when you want to change the code)
+
 ```bash
 git clone https://github.com/creekmoon/dsh-openrouter-provider-router.git
 ```
 
-Gitee mirror: `https://gitee.com/creekmoon/dsh-openrouter-provider-router.git`; the steps below are the same.
-
-1. Open **Settings → Plugins** and click **Add plugin**; pick the directory you cloned.
-2. Reopen Settings: **Provider router** shows up in the left navigation.
-
-Or install from npm: `npm install @creekmoon/dsh-openrouter-provider-router`, then pick the `node_modules/@creekmoon/dsh-openrouter-provider-router` directory in **Add plugin**.
-
-An agent can install it too: call `plugin_manager` with `install_bundle`, set `target` to that directory's absolute path; the package name is `@creekmoon/dsh-openrouter-provider-router`.
+Gitee mirror: `https://gitee.com/creekmoon/dsh-openrouter-provider-router.git`; the steps are the same. Pick that local directory in **Add plugin**; a local directory is a linked install, so disable and re-enable the plugin after editing.
 
 ## Using it
 

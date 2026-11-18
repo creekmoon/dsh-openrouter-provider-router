@@ -1,7 +1,6 @@
 {
   "name": "@creekmoon/dsh-openrouter-provider",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
   "description": "Pin each OpenRouter model to the providers you choose, from a dedicated Settings page.",
   "keywords": [
@@ -24,6 +23,9 @@
     "url": "https://github.com/creekmoon/dsh-openrouter-provider-router/issues"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "test": "node test/run.mjs"
   },

@@ -12,7 +12,7 @@ const scripts = [
   ['客户端：文案键与设计闸门', 'audit-client.mjs'],
   ['布局几何：564px 内容列与表格列宽', 'check-layout.mjs'],
   ['渲染冒烟：状态与结构', 'render-smoke.mjs'],
-  ['文档：中英双份 README 与标签词', 'check-docs.mjs'],
+  ['文档：中英 README、标签词与规则路由', 'check-docs.mjs'],
 ]
 
 let failed = 0

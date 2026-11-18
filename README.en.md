@@ -4,7 +4,7 @@
 
 A DeepSeek Harness plugin: pin a given OpenRouter model to the upstream providers you choose, from a dedicated Settings page.
 
-OpenRouter picks among a model's providers on its own, fallbacks included. For the same model those providers differ widely in price, quantization, context and uptime — this plugin writes the choice down and sends it as `provider.only` and `allow_fallbacks` in the request body.
+OpenRouter picks among a model's providers on its own, fallbacks included. For the same model those providers differ widely in price, quantization, context and uptime — this plugin pins that choice and sends it as `provider.only` and `allow_fallbacks` in the request body.
 
 **Install**: published on npm — open **Plugins → Add plugin** and enter the package name `@creekmoon/dsh-openrouter-provider-router`.
 
@@ -18,7 +18,7 @@ OpenRouter picks among a model's providers on its own, fallbacks included. For t
 
 - It rewrites only `POST /api/v1/chat/completions` requests that this DSH instance sends to `openrouter.ai`; other hosts and routes pass through untouched.
 - It handles requests whose body is a JSON string. It does not proxy, forward, retry, or read your OpenRouter balance.
-- It does not check that a slug serves the model: a provider that does not will earn a 4xx from OpenRouter.
+- It does not check that a slug serves the model: a provider that does not serve it returns a 4xx from OpenRouter.
 
 ## Install
 
@@ -26,7 +26,7 @@ Requires DSH 0.2.x (verified on 0.2.2-rc.3) plus a configured OpenRouter channel
 
 ### Recommended: install from npm
 
-The package is on npm as `@creekmoon/dsh-openrouter-provider-router`.
+The package is published on npm as `@creekmoon/dsh-openrouter-provider-router`.
 
 1. Open the **Plugins** page in the sidebar and click **Add plugin**.
 2. Enter the package name `@creekmoon/dsh-openrouter-provider-router` in the package field and confirm.
@@ -40,7 +40,7 @@ An agent can install it too: call `plugin_manager` with `install_bundle` and the
 git clone https://github.com/creekmoon/dsh-openrouter-provider-router.git
 ```
 
-Gitee mirror: `https://gitee.com/creekmoon/dsh-openrouter-provider-router.git`; the steps are the same. Pick that local directory in **Add plugin**; a local directory is a linked install, so disable and re-enable the plugin after editing.
+Gitee mirror: `https://gitee.com/creekmoon/dsh-openrouter-provider-router.git`; the steps are the same. Pick that local directory in **Add plugin** — a local directory is a linked install, so disable and re-enable the plugin after you change the code. If an agent installs it this way, set `target` to that directory's absolute path.
 
 ## Using it
 
@@ -60,7 +60,7 @@ Saving takes effect immediately; no DSH restart.
 
 ## Interface language
 
-The UI follows **Settings → General → Language** and switches immediately, with no reload. The plugin ships complete Simplified Chinese and English copy (`zh` / `en` dictionaries in `client.js`, key for key; a test fails when a key exists on only one side).
+The UI follows **Settings → General → Language** and switches immediately, with no reload. The plugin ships complete Simplified Chinese and English copy (`zh` / `en` dictionaries in `client.js`, with identical key sets; a test fails when a key exists on only one side).
 
 The title and description shown in the plugin list come from `locale/zh.json` and `locale/en.json`; other DSH built-in languages such as Japanese and Spanish fall back to English. Rule file contents, logs, and slugs inside error messages stay as they are.
 
@@ -96,7 +96,7 @@ The Host half `index.js` wraps `globalThis.fetch` in-process: only matching Open
 
 The provider list comes from `GET /api/v1/models/<id>/endpoints` (cached for 60 seconds) and the model catalog from `GET /api/v1/models` (cached for 10 minutes); when an endpoint is unavailable the plugin scrapes the model page HTML as a fallback. Sizes and colors follow the official DSH settings page tokens and specs.
 
-No build step: disable and re-enable the plugin after editing.
+No build step: disable and re-enable the plugin after editing. Before changing code, read `AGENTS.md` and `rules/通用开发规范_rule.md`; the Chinese and English READMEs always change in the same round.
 
 ```bash
 node test/run.mjs              # 5 offline checks
@@ -109,7 +109,7 @@ node test/verify-catalog.mjs   # optional: hit the live API and page parsing
 | `test/audit-client.mjs` | every locale key resolves both ways, no Chinese copy outside the dictionaries, complete bilingual metadata, module id equals package name, official size gates |
 | `test/check-layout.mjs` | usable pixel widths across the 564px content column and the narrow breakpoint |
 | `test/render-smoke.mjs` | the three views render without throwing in 17 scenarios, plus structure and copy assertions |
-| `test/check-docs.mjs` | the two READMEs link to each other, screenshot paths exist, tags match the `package.json` keywords |
+| `test/check-docs.mjs` | the two READMEs link to each other, screenshot paths exist, tags match the `package.json` keywords, and every rule file AGENTS.md routes to exists |
 
 Designs live in `designs/provider-router-redesign/` (canvas, 7 artboards: list, empty, picker, editor, alias, narrow, no catalog).
 
@@ -118,7 +118,7 @@ Designs live in `designs/provider-router-redesign/` (canvas, 7 artboards: list, 
 Bump the version in `package.json`, tag it, push the tag:
 
 ```bash
-git tag v1.0.1
+git tag v1.1.0
 git push --tags
 ```
 

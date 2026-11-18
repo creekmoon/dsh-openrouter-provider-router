@@ -96,7 +96,7 @@ Host 半 `index.js` 在进程内包了一层 `globalThis.fetch`：只有命中�
 
 供应商清单来自 `GET /api/v1/models/<id>/endpoints`（缓存 60 秒），模型目录来自 `GET /api/v1/models`（缓存 10 分钟）；接口不可用时抓模型页 HTML 兜底。界面尺寸与配色沿用 DSH 官方设置页的令牌与规格。
 
-无构建步骤，改完在插件列表里禁用再启用即可。
+无构建步骤，改完在插件列表里禁用再启用即可。改代码前先看 `AGENTS.md` 与 `rules/通用开发规范_rule.md`；中英两份 README 必须同一轮同步改。
 
 ```bash
 node test/run.mjs              # 5 个离线检查
@@ -109,7 +109,7 @@ node test/verify-catalog.mjs   # 可选：联网核对真实接口与页面解�
 | `test/audit-client.mjs` | 中英双语键全解析、字典外无中文文案、元数据双语齐全、模块 id 与包名一致、官方尺寸闸门 |
 | `test/check-layout.mjs` | 564px 内容列下表格列宽与窄宽断点的可用像素 |
 | `test/render-smoke.mjs` | 17 个状态下三视图不抛错，结构与文案断言 |
-| `test/check-docs.mjs` | 中英双份 README 互链、截图路径、标签词与 `package.json` 关键词一致 |
+| `test/check-docs.mjs` | 中英双份 README 互链、截图路径、标签词与 `package.json` 关键词一致、AGENTS.md 的规则路由真实可达 |
 
 设计稿在 `designs/provider-router-redesign/`（画布，7 块画板：清单、空态、选模型、编辑、别名、窄宽、无清单状态）。
 
@@ -118,7 +118,7 @@ node test/verify-catalog.mjs   # 可选：联网核对真实接口与页面解�
 改 `package.json` 的版本号，打 tag 再推：
 
 ```bash
-git tag v1.0.1
+git tag v1.1.0
 git push --tags
 ```
 

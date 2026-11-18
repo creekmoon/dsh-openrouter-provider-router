@@ -17,7 +17,7 @@ globalThis.window = {
 }
 
 /* 最小 React 桩：页面状态由外部按场景注入，钩子顺序为 useRef / useState / useEffect / useMemo*3 */
-const hookScript = { page: null, effects: [] }
+const hookScript = { page: null, effects: [], lang: 'zh' }
 const React = {
   createElement(type, props, ...children) {
     return { type, props: props ?? {}, children: children.flat(Infinity) }
@@ -42,7 +42,7 @@ const ctx = {
   effect(factoryFn) { return factoryFn() },
   locale: {
     register(ns, dicts) { dictionaries.push({ ns, dicts }); return () => {} },
-    bind() { return (key) => (dictionaries[0]?.dicts?.zh?.[key] ?? key) },
+    bind() { return (key) => (dictionaries[0]?.dicts?.[hookScript.lang]?.[key] ?? key) },
   },
   slots: {
     inject(key, callback) { return callback() },
@@ -130,6 +130,15 @@ function textOf(node) {
   if (typeof node === 'string' || typeof node === 'number') return String(node)
   if (Array.isArray(node)) return node.map(textOf).join('')
   return (node.children ?? []).map(textOf).join('')
+}
+
+/* 可见文案：跳过注入的 style 子树，避免把 CSS 里的中文注释算进界面文案 */
+function visibleText(node) {
+  if (node === null || node === undefined || node === false) return ''
+  if (typeof node === 'string' || typeof node === 'number') return String(node)
+  if (Array.isArray(node)) return node.map(visibleText).join(' ')
+  if (node.type === 'style') return ''
+  return (node.children ?? []).map(visibleText).join(' ')
 }
 
 const failures = []
@@ -279,6 +288,24 @@ try {
   check('目录失败给出重试', failed.some(node => node.type === 'button' && textOf(node) === '重试'))
 } catch (error) {
   check('选择模型结构核对', false, error.message)
+}
+
+/* 英文语种：同一组件切到 en，界面无中文残留，分隔符跟着语种换 */
+try {
+  hookScript.lang = 'en'
+  const listText = visibleText(render(pageWith({})))
+  const firstCjk = [...listText].find(char => /[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/.test(char))
+  check('英文清单无中文残留', firstCjk === undefined, firstCjk === undefined ? '' : 'U+' + firstCjk.codePointAt(0).toString(16))
+  check('英文清单出现 New pin 与 Edit', listText.includes('New pin') && listText.includes('Edit'))
+
+  const unknownText = visibleText(render(pageWith({ view: 'editor', draft: { providers: ['my/custom'] } })))
+  check('英文清单外提示用半角冒号', unknownText.includes('not in this model’s list: my/custom'), unknownText.slice(0, 160))
+
+  hookScript.lang = 'zh'
+  const zhUnknown = visibleText(render(pageWith({ view: 'editor', draft: { providers: ['my/custom'] } })))
+  check('中文清单外提示用全角冒号', zhUnknown.includes('清单里没有这些 slug：my/custom'))
+} catch (error) {
+  check('英文语种核对', false, error.message)
 }
 
 console.log(failures.length === 0 ? '\nALL RENDER SMOKE CHECKS PASSED' : `\n${failures.length} CHECK(S) FAILED`)

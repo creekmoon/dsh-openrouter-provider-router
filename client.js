@@ -72,6 +72,8 @@ window.__ModuleLoader__.load({
       add: '添加',
       manualHint: '可一次填多个，用逗号或空格分隔；清单外的 slug 也能保存，但请求可能被 OpenRouter 拒绝。',
       manualInvalidPrefix: '格式不正确：',
+      listSeparator: '、',
+      labelSeparator: '：',
       notInCatalog: '清单里没有这些 slug',
       notInCatalogHint: '拼写可能有误；保存后仍会按原样生效。',
       allowFallbacks: '允许回退',
@@ -178,6 +180,8 @@ window.__ModuleLoader__.load({
       add: 'Add',
       manualHint: 'Type several at once, separated by commas or spaces; a slug outside the list still saves, but OpenRouter may reject the request.',
       manualInvalidPrefix: 'Invalid slug: ',
+      listSeparator: ', ',
+      labelSeparator: ': ',
       notInCatalog: 'not in this model’s list',
       notInCatalogHint: 'possibly a typo; it is still saved as typed.',
       allowFallbacks: 'Allow fallbacks',
@@ -591,7 +595,8 @@ window.__ModuleLoader__.load({
      * @returns {{ valid: string[], invalid: string[] }} 校验结果
      */
     function splitManualSlugs(text) {
-      const parts = String(text ?? '').split(/[\s,;，；]+/).filter(part => part !== '')
+      /* 分隔符除半角逗号分号，也收中文全角逗号分号：用户常从中文文档整段粘贴 */
+      const parts = String(text ?? '').split(/[\s,;\uFF0C\uFF1B]+/).filter(part => part !== '')
       /* 分组步骤：逐项过 slug 正则，合法与非法分开 */
       return {
         valid: parts.filter(part => PROVIDER_SLUG.test(part)),
@@ -858,7 +863,7 @@ window.__ModuleLoader__.load({
               ...current,
               notice: null,
               manualInput: invalid.join(' '),
-              manualError: invalid.length === 0 ? null : `${t('manualInvalidPrefix')}${invalid.join('、')}`,
+              manualError: invalid.length === 0 ? null : `${t('manualInvalidPrefix')}${invalid.join(t('listSeparator'))}`,
               draft: { ...current.draft, providers },
             }
           })
@@ -1192,7 +1197,7 @@ window.__ModuleLoader__.load({
               }, t('clear'))),
             renderSelectedTags(),
             ready ? renderProviderTable() : renderCatalogState(),
-            unknownSlugs.length === 0 ? null : h('p', { className: 'dop-hint' }, `${t('notInCatalog')}：${unknownSlugs.join('、')} · ${t('notInCatalogHint')}`),
+            unknownSlugs.length === 0 ? null : h('p', { className: 'dop-hint' }, `${t('notInCatalog')}${t('labelSeparator')}${unknownSlugs.join(t('listSeparator'))} · ${t('notInCatalogHint')}`),
             h('div', { className: 'dop-field' },
               h('div', { className: 'dop-inline' },
                 h('input', {

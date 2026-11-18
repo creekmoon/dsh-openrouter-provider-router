@@ -1,5 +1,7 @@
 # 供应商路由器（DSH-OpenRouter-Provider）
 
+[中文](README.md) · [English](README.en.md)
+
 给 DeepSeek Harness 用的插件：在设置里把某个 OpenRouter 模型固定到你指定的几家上游供应商。
 
 OpenRouter 默认会在同一模型的多个供应商之间自己挑、自己回退。同一个模型，不同供应商的价格、精度、上下文和可用性差别很大 —— 这个插件把「谁来回这个请求」写死，落成请求体里的 `provider.only` 与 `allow_fallbacks`。
@@ -23,8 +25,10 @@ OpenRouter 默认会在同一模型的多个供应商之间自己挑、自己回
 要求 DSH 0.2.x（在 0.2.2-rc.3 上验证），并且已经配好 OpenRouter 渠道与 API Key。
 
 ```bash
-git clone https://gitee.com/creekmoon/dsh-openrouter-provider-router.git
+git clone https://github.com/creekmoon/dsh-openrouter-provider-router.git
 ```
+
+Gitee 镜像：`https://gitee.com/creekmoon/dsh-openrouter-provider-router.git`，克隆后步骤一样。
 
 1. 打开 **设置 → 插件**，点 **添加插件**（Add plugin），选中克隆下来的目录。
 2. 重新打开设置，左侧导航出现 **供应商路由器**。
@@ -46,6 +50,12 @@ git clone https://gitee.com/creekmoon/dsh-openrouter-provider-router.git
 ![选择模型](docs/screenshots/provider-router-picker.png)
 
 保存后立即生效，不需要重启 DSH。
+
+## 界面语言
+
+界面跟随 **设置 → 通用 → 语言** 即时切换，不用重载页面。插件自带简体中文与英文两套完整文案（`client.js` 的 `zh` / `en` 字典，键一一对应，测试会拦住只写一侧的键）。
+
+插件清单里显示的标题与描述来自 `locale/zh.json` 与 `locale/en.json`；日语、西语等其它 DSH 内置语言回退到英文。规则文件内容、日志和报错里的 slug 保持原样，不翻译。
 
 ## 规则存在哪
 
@@ -82,24 +92,23 @@ Host 半 `index.js` 在进程内包了一层 `globalThis.fetch`：只有命中�
 无构建步骤，改完在插件列表里禁用再启用即可。
 
 ```bash
-node test/run.mjs              # 4 个离线检查
+node test/run.mjs              # 5 个离线检查
 node test/verify-catalog.mjs   # 可选：联网核对真实接口与页面解析
 ```
 
 | 检查 | 覆盖内容 |
 |---|---|
 | `test/verify-host.mjs` | fetch 注入、区域域名、非 OpenRouter 主机、非 JSON body、RPC 读写与落盘、卸载还原 |
-| `test/audit-client.mjs` | 中英双语键全解析、模块 id 与包名一致、官方尺寸闸门 |
+| `test/audit-client.mjs` | 中英双语键全解析、字典外无中文文案、元数据双语齐全、模块 id 与包名一致、官方尺寸闸门 |
 | `test/check-layout.mjs` | 564px 内容列下表格列宽与窄宽断点的可用像素 |
 | `test/render-smoke.mjs` | 17 个状态下三视图不抛错，结构与文案断言 |
+| `test/check-docs.mjs` | 中英双份 README 互链、截图路径、标签词与 `package.json` 关键词一致 |
 
 设计稿在 `designs/provider-router-redesign/`（画布，7 块画板：清单、空态、选模型、编辑、别名、窄宽、无清单状态）。
 
-## English
+## 仓库标签
 
-A DeepSeek Harness plugin that pins each OpenRouter model to the upstream providers you choose. Open **Settings → Provider router**: the page lists your pins, **New pin** opens an editor where you pick a model and tick providers in a price-sorted table, then save.
-
-Install: clone the repo, then **Settings → Plugins → Add plugin** and pick the directory. The Host half wraps `globalThis.fetch`: only `POST https://openrouter.ai/api/v1/chat/completions` requests with a JSON body that match a rule get `provider.only` and `provider.allow_fallbacks`; everything else passes through untouched. Rules live in `$DSH_HOME/openrouter-provider.json`.
+GitHub topics：`dsh` `deepseek-harness` `dsh-plugin` `dsh-bundle` `openrouter` `openrouter-provider` `provider-routing` `llm-routing` `settings-ui`。`package.json` 的 `keywords` 与之一致，按 DSH 插件规范检索时能搜到本仓库。
 
 ## 许可
 

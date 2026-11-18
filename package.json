@@ -8,9 +8,21 @@
     "dsh",
     "deepseek-harness",
     "dsh-plugin",
+    "dsh-bundle",
     "openrouter",
-    "provider-routing"
+    "openrouter-provider",
+    "provider-routing",
+    "llm-routing",
+    "settings-ui"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/creekmoon/dsh-openrouter-provider-router.git"
+  },
+  "homepage": "https://github.com/creekmoon/dsh-openrouter-provider-router#readme",
+  "bugs": {
+    "url": "https://github.com/creekmoon/dsh-openrouter-provider-router/issues"
+  },
   "license": "MIT",
   "scripts": {
     "test": "node test/run.mjs"
@@ -27,7 +39,8 @@
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
-    "README.md"
+    "README.md",
+    "README.en.md"
   ],
   "dsh": {
     "bundle": {

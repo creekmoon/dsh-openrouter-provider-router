@@ -41,6 +41,24 @@ if (failures.length > 0) {
   console.log('ALL LOCALE KEYS RESOLVE')
 }
 
+/* 双语闸门：界面文案只能来自字典，字典外不得再出现中文（注释不算文案） */
+const CJK = /[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/
+const code = source.slice(enEnd).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+const enBlock = source.slice(enStart, enEnd)
+const localeOf = id => JSON.parse(readFileSync(fileURLToPath(new URL(`../locale/${id}.json`, import.meta.url)), 'utf8'))
+const zhMeta = localeOf('zh').meta
+const enMeta = localeOf('en').meta
+
+const i18nChecks = [
+  ['字典外没有中文文案', !CJK.test(code)],
+  ['英文字典不含中文', !CJK.test(enBlock)],
+  ['中英元数据都写了标题与描述', [zhMeta, enMeta].every(meta => String(meta?.title ?? '') !== '' && String(meta?.description ?? '') !== '')],
+  ['中文元数据确实是中文', CJK.test(zhMeta.title + zhMeta.description)],
+  ['英文元数据不含中文', !CJK.test(enMeta.title + enMeta.description)],
+]
+for (const [name, ok] of i18nChecks) console.log((ok ? 'PASS ' : 'FAIL ') + name)
+if (i18nChecks.some(([, ok]) => !ok)) process.exitCode = 1
+
 /* CSS 块：从 const CSS = ` 到终止反引号 */
 const cssStart = source.indexOf('const CSS = `')
 const cssEnd = source.indexOf('\n`\n', cssStart)
